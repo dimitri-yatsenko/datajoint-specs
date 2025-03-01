@@ -2,24 +2,27 @@
 
 DataJoint extends the relational database model to support scientific data—including embeded computational dependencies.
 
-This document provides API specifications, serving as a *common language* for defining computational databases. 
+This document provides API specifications, serving as a *common language* for implementing computational databases and interacting with them.
 
 Currently, the reference implementation is DataJoint Python with MySQL and Postgres backends. 
 Therefore, some the defintions may be  Python-flavored. 
-
 However, this specification are written to be straightforwardly adopted into other programming languages with  full interoperabaility.
+
+This specification does not include the computational backend for orchestrating computate jobs. It only serves to specify such computations. 
 
 ## Key objectives
 
 1. Relational database backend
-2. Support Data integrity constraints
+2. Support data integrity constraints
 3. Support Transaction processing
-4. Program directly from a scientific programming language (e.g. Python)
+4. Program directly from a scientific programming language (e.g. Python) for schema definition, data manipulation, and queries.
 5. Manage of large data files and scientific formats.
-6. EmComputations are embedded as a native construct of the data model, relying on foreign keys to define computational dependencies.
-7. Extensions allow storing complex data structures in the database or in
+6. Embed computation as a native construct of the data model, relying on foreign keys to convey computational dependencies.
+7. Support extensions to allow storing complex data structures. 
 
-# Terminology
+By combining the rigor of the relational data model with support for large scientific data and the ability to orchestrate computations, DataJoint provides scientists with the capability to implement and share powerful data pipelines.
+
+## Terminology
 
 Schema
 : A schema is both (a) a set of table definitions with integrity constraints and (b) a namespace for a collection of related tables.
@@ -53,7 +56,7 @@ Schema design is mirrored by the package design of in the scientific language wi
 A one-to-one correspondence is strongly recommended between schemas in the databases and separate modules in the programming language.
 
 ## Table Definition
-Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys, seconday indexes, 
+Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and seconday indexes. 
 
 ## Table Name
 Tables are represented as classes in the programming language, whose names follow the CamelCase notation.
@@ -91,16 +94,16 @@ The primary key can have one attribute (simple primary key), multiple attributes
 Foreign keys are defined on separate lines by pointing to the class name representing a parent table.
 
 ```
--> ClassName
--> [nullable, unique] ClassName
--> ClassName.proj(new_name=old_name)
+-> ParentClassName
+-> [nullable, unique] ParentClassName
+-> ParentClassName.proj(new_name=old_name)
 ```
 
 Cyclical dependencies are not allowed.
 
-Properties can be `nullable` and `unique`.
+Attribute properties can be `nullable` and `unique`.
 
-`.proj` renames primary key attributes.
+`.proj` is used to rename primary key attributes to allow changing foreign key attributes from the parent.
 
 A foreign key has the following effects:
 
@@ -112,21 +115,30 @@ Lookup tables are special tables whose contents is considered part of the schema
 Therefore, its content is provided as part of the table declaration, although it can evolve over time. 
 
 # Attribute Types
+Database supports a small set of native types for column attributes.
+However, they include *binary large objects* (blobs) and files for storing large scientific data.
+Type adaptors allow defining custom types stored into the native attribute types.
+The spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
 
-Attributes can be stored in the databaes as one the following data types:
+Attributes can be declared with the following types:
 
-- **UUID**: `uuid` — follows RFC 4122. Defaults are not supported.
-- **Integers:** `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`
-- **Scientific**: `float32`, `float64` (`nan` is not supported by MySQL backend)
-- **Decimal:** `decimal(M,N)`
-- **Character strings**: `char(N)`, `varchar(N)`
-- **Enumeration:** `enum('choice1', 'choice2', 'choice3')`
-- **Date:** `date` — in ISO 8601 standard. Special value `NOW` can be used for default.
-- **Time:** `timestamp`   Microsecond precision in UTC in ISO 8601 standard.
-  Special value `NOW` can be used for default.
-- **Binary large object:** `blob`
-- **File or folder:** `file` or `file@store` where `store` is a named storage backend.
-- **Custom type**: `<adaptor_name>` — see Type Adaptors.
+| Category | Identifies  |  Comment |
+| --- | --- | --- |
+| **UUID** | `uuid` | universally unique identifiers as defined in RFC 4122. Defaults values are not supported. |
+| **Integers:** | `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64` ||
+| **Scientific** | `float32`, `float64` | `nan` is not supported by MySQL backend |
+| **Decimal** | `decimal(M,N)` ||
+| **Character strings** | `char(N)`, `varchar(N)` ||
+| **Enumeration** | `enum('value1', 'value2', 'value3')` ||
+| **Date** | `date` | in ISO 8601 standard. Special value `NOW` can be used as default |
+| **Time** | `timestamp`  |  Microsecond precision in UTC in ISO 8601 standard. Special value `NOW` can be used for default. |
+| **Binary large object** | `blob` ||
+| **File or folder** | `file`, `file@store` | where `store` is a named storage backend.
+| **Custom type** | `<adaptor_name>` | see Type Adaptors |
+
+## File Management
+
+## Type Adaptors
 
 
 # Queries
