@@ -1,13 +1,13 @@
 # DataJoint 2.0 Specification
 
-DataJoint extends the relational database model to support scientific data---embedding computational dependencies.
+DataJoint extends the relational database model to support scientific data—including embeded computational dependencies.
 
 This document provides API specifications, serving as a *common language* for defining computational databases. 
 
 Currently, the reference implementation is DataJoint Python with MySQL and Postgres backends. 
 Therefore, some the defintions may be  Python-flavored. 
 
-However, this specification are writtent ot be straightforwardly adopted into other programming languages with  full interoperabaility.
+However, this specification are written to be straightforwardly adopted into other programming languages with  full interoperabaility.
 
 ## Key objectives
 
@@ -21,13 +21,26 @@ However, this specification are writtent ot be straightforwardly adopted into ot
 
 # Terminology
 
-- **Schema:** (a) a set of table definitions and integrity constraints and (b) a namespace for a collection of related tables.
-- **Table**: the principal data structure in the relational data model. A table can be a named table stored in a database schema or the result derived by a query.
-- **Attribute**=**Column**=**Field**: Tables have named columns (attributes) with specified data types.
-- **Row:** Tables have rows providing values for each attribute. The order of rows in a table is not significant.
-- **Query:** a function on stored data performed by the server, yielding a new derived table.
-- **Fetch:** transfer of query output from server to client.
-- **Transaction:** a series of data manipulations that are performed as an atomic, serializable operation, with ACID compliance.
+Schema
+: A schema is both (a) a set of table definitions with integrity constraints and (b) a namespace for a collection of related tables.
+
+Table
+: The principal data structure in the relational data model. A table can be a named table stored in a database schema or the result derived by a query.
+
+Attribute = Column = Field
+: Tables have named columns (fields or attributes) with specified data types.
+
+Row 
+: Tables have rows providing values for each attribute. The order of rows in a table is not significant.
+
+Query
+: A function on stored data to be performed by the server, yielding a new derived table.
+
+Fetch
+: The execution of a query by the server and transfer of query result to the client.
+
+Transaction: 
+: A series of data manipulations that are performed as an atomic, serializable operation, with ACID compliance.
 
 # Schema Definition
 
