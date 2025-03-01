@@ -1,17 +1,22 @@
 # DataJoint 2.0 Specification
 
-DataJoint extends the relational database model to support scientific data embedding computational dependencies.
+DataJoint extends the relational database model to support scientific data---embedding computational dependencies.
 
-This document specifies the API, serving as a *common language* for defining computational databases for various host programming languages, database backends, and file storage backends.
+This document provides API specifications, serving as a *common language* for defining computational databases. 
 
-## Key features:
+Currently, the reference implementation is DataJoint Python with MySQL and Postgres backends. 
+Therefore, some the defintions may be  Python-flavored. 
 
-1. Relational database integration
-2. Data integrity constraints
-3. Transaction processing
-4. Direct support in scientific programming languages (e.g. Python)
-5. Management of large data files
-6. Computations are embedded as a native construct of the data model, relying on foreign keys to define computational dependencies.
+However, this specification are writtent ot be straightforwardly adopted into other programming languages with  full interoperabaility.
+
+## Key objectives
+
+1. Relational database backend
+2. Support Data integrity constraints
+3. Support Transaction processing
+4. Program directly from a scientific programming language (e.g. Python)
+5. Manage of large data files and scientific formats.
+6. EmComputations are embedded as a native construct of the data model, relying on foreign keys to define computational dependencies.
 7. Extensions allow storing complex data structures in the database or in
 
 # Terminology
@@ -24,22 +29,27 @@ This document specifies the API, serving as a *common language* for defining com
 - **Fetch:** transfer of query output from server to client.
 - **Transaction:** a series of data manipulations that are performed as an atomic, serializable operation, with ACID compliance.
 
-# Table definition
+# Schema Definition
 
 ## Schema
 
-Tables are organized into schemas. Each schema represents a namespace in the database. Each schema is defined as a collection of classes in a dedicated module in the host scientific programming language.
+Tables are organized into schemas. Each schema represents a namespace in the database. 
 
-## Table name
+Schema design is mirrored by the package design of in the scientific language with schemas mapping to modules and tables mapping to classes.
 
-Tables are represented as classes in the programming language, whose names follow the CamelCase notation. The table class `module.ClassName` translates into the corresponding `schema.table_name`, where schema corresponds to module and table name corresponds to class name.
+A one-to-one correspondence is strongly recommended between schemas in the databases and separate modules in the programming language.
 
-## Table tier
+## Table Definition
+Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys, seconday indexes, 
 
+## Table Name
+Tables are represented as classes in the programming language, whose names follow the CamelCase notation.
+The table class `module.ClassName` translates into the corresponding `schema.table_name`, where schema corresponds to module and table name corresponds to class name.
+
+## Table tiers
 Each table is designated as `lookup`, `manual`, `imported`, or `computed`.
 
-## Attribute definition
-
+## Attribute Definition
 The table definition defines a number of fields, each on a separate line in the following format:
 
 ```
@@ -53,7 +63,7 @@ Comments and default values are optional.
 
 A special default value of `null` makes the attribute nullable. There is no other way to make an attribute nullable.
 
-## Primary separator
+## Primary Key
 
 The primary separator `---` separates the primary key attributes above from the secondary attributes below. All the attributes above the primary separator, jointly, comprise the primary key.
 
@@ -84,9 +94,13 @@ A foreign key has the following effects:
 1. The primary key attributes of the parent table are included in the child table definition if they are not already included.
 2. A referential dependency is established between the child and the parent.
 
+## Lookup tables 
+Lookup tables are special tables whose contents is considered part of the schema design rather than project data. 
+Therefore, its content is provided as part of the table declaration, although it can evolve over time. 
+
 # Attribute Types
 
-Attributes can use the following data types:
+Attributes can be stored in the databaes as one the following data types:
 
 - **UUID**: `uuid` — follows RFC 4122. Defaults are not supported.
 - **Integers:** `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`
@@ -100,6 +114,7 @@ Attributes can use the following data types:
 - **Binary large object:** `blob`
 - **File or folder:** `file` or `file@store` where `store` is a named storage backend.
 - **Custom type**: `<adaptor_name>` — see Type Adaptors.
+
 
 # Queries
 
