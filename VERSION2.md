@@ -36,7 +36,7 @@ By combining the rigor of the relational data model with support for large scien
 
 ## Schema Definition
 
-##R Schema
+### Schema
 
 Tables are organized into schemas. Each schema represents a namespace in the database. 
 
@@ -152,11 +152,20 @@ Fetching is the process of executing the qeury transferring query results from t
 
 ### Query Operators
 
-#### Restriction 'A & cond` and Anti-Restriction `A - cond`
+#### Restriction `A & cond` and `A - cond`
 - by condition
 - by sequence
 - by AndList
 - by a subquery
+
+#### Projection `A.proj(...)`
+
+#### Join `A * B`
+
+#### Union `A + B`
+
+#### Universal Sets `dj.U()`
+
 
 ### Algebraic Closure
 
@@ -169,12 +178,15 @@ Algebraic closure refers to the property that query operations in DataJoint alwa
 
 This property enables DataJoint to support composable and declarative data queries in a fully relational manner.
 
-## Semantic Join
+#### Semantic Join Rules
 
 In binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), must relate rows in table `A` to rows in table `B`.
 
 The match is performed as the equality condition on all pairs of attributes that (a) have the same name in both `A` and `B` and trace to the same attribute definition through an uninterrupted chain of foreign keys.
 
 If the tables `A` and `B` have attributes with the same names but do not trace their lineage to the same original definition, the binary operators will be invalid. Users must remove or rename the colliding attributes before performing the binary operation.
+
+
+## Computation
 
 
