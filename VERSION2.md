@@ -39,6 +39,8 @@ By combining the rigor of the relational data model with support for large scien
 |**Fetch**|The execution of a query on the server and transferring the result to the client.|
 |**Transaction**|A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit.|
 
+---
+
 # Schema Definition
 
 ## Schema
@@ -138,7 +140,7 @@ Attributes can be declared with the following types:
 
 ## Custom Types
 
-===========
+-------
 # Data Manipulation
 Data manipulations are operations that atler the state of the data stored in the database. 
 
@@ -201,16 +203,25 @@ Student.insert([
 
 
 ## Query Insert 
-The method `Table.insert(query_expression)` where `query_expression` is a 
+The method `Table.insert(query_expression)` to insert the result of a [query expression](#query-expression).
+In this case, the query expression is treated similarly to the inserted sequence in batch insert and must meet the same requirements.
+
+The remarkable property of query insert is that no data is fetched to the client.
+Both the source query expression and the subsequent insert are performed server-side without sendig data to the client.
+Both the query and the insert are performed as an atomic transaction. 
+
+Example:
+```python
+# insert all possible majors for all students
+StudentMajor.insert(Department.proj() * Student.proj()) 
+```
+
+## Delete 
+
+## Update1
 
 
-
-### Update1
-
-### Delete 
-
-
-================
+------------
 # Queries
 
 A query is a function on the data performed on the server side, yieldig a derived table.
@@ -223,7 +234,7 @@ Fetching is the process of executing the qeury transferring query results from t
 - `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of 
 - `fetch1()`: Ensures that only a single row is returned and raises an error if multiple rows are present. The result is typically a dictionary.
 
-## Query Expressions
+## <a name="qeury-expression"></a>Query Expressions
 
 
 ## Query Operators
