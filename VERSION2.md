@@ -36,6 +36,7 @@ By combining the rigor of the relational data model with support for large scien
 |**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
 |**Row** (**Record** or **Tuple**) | A single entry in a table, providing values for each attribute. The order of rows in a table is not significant. Rows are identified and addressed by their primary key.|
 |**Query**|A function performed on the stored data on the server side, expressed as a *query expression* and resulting in a new, derived table.|
+|**Query Expression**|Is the formal definition of a query defined through query operators.|
 |**Fetch**|The execution of a query on the server and transferring the result to the client.|
 |**Transaction**|A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit.|
 
@@ -203,7 +204,7 @@ Student.insert([
 
 
 ## Query Insert 
-The method `Table.insert(query_expression)` to insert the result of a [query expression](#query-expression).
+The method `Table.insert(query_expression)` to insert the result of a [query expression](#query-expressions).
 In this case, the query expression is treated similarly to the inserted sequence in batch insert and must meet the same requirements.
 
 The remarkable property of query insert is that no data is fetched to the client.
@@ -234,7 +235,7 @@ Fetching is the process of executing the qeury transferring query results from t
 - `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of 
 - `fetch1()`: Ensures that only a single row is returned and raises an error if multiple rows are present. The result is typically a dictionary.
 
-## <a name="qeury-expression"></a>Query Expressions
+## Query Expressions
 
 
 ## Query Operators
