@@ -2,13 +2,17 @@
 ---
 ## Introduction
 
-DataJoint extends the relational database model to support scientific data, incorporating embedded computational dependencies.
+DataJoint is a software framework for managing scientific data and computations.
+It relies on the relational database model for data organization, transaction processing, and queries.
+Computation is incorporated as a first-class citizen in the data model. 
 
 This document provides API specifications, establishing a common language for implementing computational databases and interacting with them.
 
-The current reference implementation is DataJoint for Python, using MySQL or PostgreSQL as backends. As a result, some definitions may have a Python-oriented flavor. However, this specification is designed for easy adoption in other programming languages while maintaining full interoperability.
+The reference implementation is for Python, using MySQL or PostgreSQL as backends.
+As a result, some definitions may have a Python-oriented flavor.
+However, this specification is designed for easy adoption in other programming languages while maintaining full interoperability.
 
-It is important to note that this specification does not cover the computational backend for orchestrating compute jobs; it solely defines how such computations are specified.
+It is important to note that this specification does not cover implementation details for the computational backend, which  orchestrates compute jobs; its scope is limited to the formal definition of such computations.
 
 ### Key Objectives
 
@@ -30,8 +34,8 @@ By combining the rigor of the relational data model with support for large scien
 |**Table**| The single fundamental data structure in the relational data model. A table can be either a named stored table represented as a class or a derived result represented as a query expression. A table consists of named and typed columns (attributes) and unordered rows with values for each attribute. |
 |**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
 |**Row** (**Record** or **Tuple**) | A single entry in a table, providing values for each attribute. The order of rows in a table is not significant. Rows are identified and addressed by their primary key.|
-|**Query**|A function perfored on the stored data on the server side, expressed as a *query expression* and resulting in a new, derived table.|
-|**Fetch**|The execution of a query on the server and transfer of the result to the client.|
+|**Query**|A function performed on the stored data on the server side, expressed as a *query expression* and resulting in a new, derived table.|
+|**Fetch**|The execution of a query on the server and transferring the result to the client.|
 |**Transaction**|A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit.|
 
 ## Schema Definition
