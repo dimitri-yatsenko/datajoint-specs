@@ -31,7 +31,7 @@ By combining the rigor of the relational data model with support for large scien
 
 | Term | Definition |
 |---|---|
-|**DataJoint project**| Also commonly described as *database*, *pipeline* or *workflow*. A DataJoint project combines a database comprising multiple schemas, a `git` code repository, and a hierarchical file repository.|
+|**DataJoint Project**| Also commonly described as *database*, *pipeline* or *workflow*. A DataJoint project combines a relational database (with multiple schemas), a `git` code repository, and a hierarchical file store.|
 |**Schema**| (a) A collection of table definitions with integrity constraints and (b) a namespace for organizing related tables. |
 |**Table**| The single fundamental data structure in the relational data model. A table can be either a named stored table represented as a class or a derived result represented as a query expression. A table consists of named and typed columns (attributes) and unordered rows with values for each attribute. |
 |**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
@@ -54,7 +54,7 @@ Schema design is mirrored by the package design of in the scientific language wi
 A one-to-one correspondence is strongly recommended between schemas in the databases and separate modules in the programming language.
 
 ## Table Definition
-Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and seconday indexes.
+Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and secondary indexes.
 
 ## Table Name
 Tables are represented as classes in the programming language, whose names follow the CamelCase notation.
@@ -66,8 +66,8 @@ Each table is designated as one of four tiers:
 |---|---|
 |`lookup`| Data that are part of the schema definition rather than project data: parameters, general facts.|
 |`manual`| Data entered from external sources.|
-|`computed`| Data are automatically computed by accessnig data upstream in the pipeline.|
-|`imported`| Data are automatically computed by accessing data upsteeam in the pipeline, accessing external sources.|
+|`computed`| Data are automatically computed by accessing data upstream in the pipeline.|
+|`imported`| Data are automatically computed by accessing data upstream in the pipeline, but also accessing external data sources in the process.|
 
 ## Attribute Definition
 The table definition defines a number of fields, each on a separate line in the following format:
@@ -161,7 +161,7 @@ class ChemicalElement(dj.Lookup):
     ---
     symbol        : char(2)          # Chemical symbol
     name          : varchar(20)      # Element name
-    atomic_weight : decimal(8, 3)    # Standard atomic weight
+    atomic_weight : decimal(7, 4)    # Standard atomic weight
     """
     contents = [
         {'atomic_number': 1, 'symbol': 'H',  'name': 'Hydrogen',  'atomic_weight': 1.008},
@@ -173,10 +173,10 @@ class ChemicalElement(dj.Lookup):
 ```
 
 ## Attribute Types
-Database supports a small set of basic types for column attributes for storing them
-However, they include *binary large objects* (blobs) and files for storing large scientific data.
-Type adaptors allow defining custom types stored into the native attribute types.
-The spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
+Database supports a small set of basic types for column attributes for storing them.
+These types mask and supplant the data types supported natively by the relational backends ([postgres](https://www.postgresql.org/docs/current/datatype.html) and [mysql](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)] to focus on the needs of data science and experimental science.
+This spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
+
 
 Attributes can be declared with the following types:
 
@@ -193,6 +193,9 @@ Attributes can be declared with the following types:
 | **Binary large object** | `blob` |
 | **File or folder** | `file` | a file or folder [managed by DataJoint](#file-management).|
 | **Custom type** | `<adaptor_name>` | [type-adaptors](#type-adaptors) |
+
+The types *binary large objects* (blobs) and files provide support for storing large scientific data.
+Type adaptors allow defining convenient operational interfaces for stored data objects.
 
 ## Type Adaptors 
 
