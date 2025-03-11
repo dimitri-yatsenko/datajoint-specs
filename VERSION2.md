@@ -31,6 +31,7 @@ By combining the rigor of the relational data model with support for large scien
 
 | Term | Definition |
 |---|---|
+|**DataJoint project**| Also commonly described as *database*, *pipeline* or *workflow*. A DataJoint project combines a database comprising multiple schemas, a `git` code repository, and a hierarchical file repository.|
 |**Schema**| (a) A collection of table definitions with integrity constraints and (b) a namespace for organizing related tables. |
 |**Table**| The single fundamental data structure in the relational data model. A table can be either a named stored table represented as a class or a derived result represented as a query expression. A table consists of named and typed columns (attributes) and unordered rows with values for each attribute. |
 |**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
@@ -205,7 +206,7 @@ They are created and accessed through standard operations and queries: `insert`,
 Data operations on files provide the same consistency and integrity guarantees as data stored in the database.
 
 ## Storage Backend Configuration
-A DataJoint client is configured to access a storage backend.
+A DataJoint client is configured to access the storage backend associated with each database.
 For each insert and fetch operation, the client constructs the relative path for the file fields.
 The database entry for the file type stores metadata such as file extension, size, checksum, and tags.
 The hierarchical structure is configurable as part of the storage backend configuration.
@@ -230,14 +231,14 @@ Several options are available for partitioning this file repository based on the
 
 
 ## File Operations
-The DataJoint client uses the [`fsspec`]((https://filesystem-spec.readthedocs.io/en/latest/) protocol or similar, supporting various storage backends.
+The DataJoint client uses the [`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/) protocol or similar, supporting various storage backends.
 During insertion, a field of type file expects a bytestream or a callback function that accepts a path as its argument and writes its contents to that path.
 DataJoint constructs the file structure and hierarchy accordingly.
 
 
 -------
-# Data Manipulation
-Data manipulations are operations that atler the state of the data stored in the database.
+# Data Operations
+Data operations atler the state of the data stored in the database.
 
 Records (rows) in a stored table are considered immutable: each is inserted or deleted as a whole using `insert` and `delete` operators.
 
