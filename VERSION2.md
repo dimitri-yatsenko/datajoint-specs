@@ -5,7 +5,7 @@
 
 DataJoint is a software framework for managing scientific data and computations.
 It relies on the relational database model for data organization, transaction processing, and queries.
-Computation is incorporated as a first-class citizen in the data model. 
+Computation is incorporated as a first-class citizen in the data model.
 
 This document provides API specifications, establishing a common language for implementing computational databases and interacting with them.
 
@@ -17,17 +17,17 @@ It is important to note that this specification does not cover implementation de
 
 ## Key Objectives
 
-- **Relational database backend** – Built on a rigorous relational model.  
-- **Data integrity constraints** – Ensures consistency and validity.  
-- **Transaction processing** – Supports atomic, consistent, isolated, and durable (ACID) transactions.  
-- **Scientific programming interface** – Enables schema definition, data manipulation, and queries directly from a scientific programming language (e.g., Python).  
-- **Management of large data files** – Supports scientific data formats and efficient storage.  
-- **Embedded computation** – Integrates computation as a native construct in the data model, using foreign keys to define dependencies.  
-- **Extensibility** – Allows for storing complex data structures beyond standard relational types.  
+- **Relational database backend** – Built on a rigorous relational model.
+- **Data integrity constraints** – Ensures consistency and validity.
+- **Transaction processing** – Supports atomic, consistent, isolated, and durable (ACID) transactions.
+- **Scientific programming interface** – Enables schema definition, data manipulation, and queries directly from a scientific programming language (e.g., Python).
+- **Management of large data files** – Supports scientific data formats and efficient storage.
+- **Embedded computation** – Integrates computation as a native construct in the data model, using foreign keys to define dependencies.
+- **Extensibility** – Allows for storing complex data structures beyond standard relational types.
 
 By combining the rigor of the relational data model with support for large scientific datasets and built-in computational workflows, DataJoint empowers scientists to design, implement, and share powerful data pipelines..
 
-## Terminology  
+## Terminology
 
 | Term | Definition |
 |---|---|
@@ -36,9 +36,9 @@ By combining the rigor of the relational data model with support for large scien
 |**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
 |**Row** (**Record** or **Tuple**) | A single entry in a table, providing values for each attribute. The order of rows in a table is not significant. Rows are identified and addressed by their primary key.|
 |**Query**|A function performed on the stored data on the server side, expressed as a *query expression* and resulting in a new, derived table.|
-|**Query Expression**|Is the formal definition of a query defined through query operators.|
+|**Query Expression**|The formal definition of a query expressed with through [query operators](#query-operators).|
 |**Fetch**|The execution of a query on the server and transferring the result to the client.|
-|**Transaction**|A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit.|
+|**Transaction**|A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit. All operations are performed correctly or not at all. Partial results are not seen by anyone outside the transaction.|
 
 ---
 
@@ -46,21 +46,27 @@ By combining the rigor of the relational data model with support for large scien
 
 ## Schema
 
-Tables are organized into schemas. Each schema represents a namespace in the database. 
+Tables are organized into schemas. Each schema represents a namespace in the database.
 
 Schema design is mirrored by the package design of in the scientific language with schemas mapping to modules and tables mapping to classes.
 
 A one-to-one correspondence is strongly recommended between schemas in the databases and separate modules in the programming language.
 
 ## Table Definition
-Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and seconday indexes. 
+Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and seconday indexes.
 
 ## Table Name
 Tables are represented as classes in the programming language, whose names follow the CamelCase notation.
 The table class `module.ClassName` translates into the corresponding `schema.table_name`, where schema corresponds to module and table name corresponds to class name.
 
-## Table tiers
-Each table is designated as `lookup`, `manual`, `imported`, or `computed`.
+## Table Tiers
+Each table is designated as one of four tiers:
+| Tier | Description |
+|---|---|
+|`lookup`| Data that are part of the schema definition rather than project data: parameters, general facts.|
+|`manual`| Data entered from external sources.|
+|`computed`| Data are automatically computed by accessnig data upstream in the pipeline.|
+|`imported`| Data are automatically computed by accessing data upsteeam in the pipeline, accessing external sources.|
 
 ## Attribute Definition
 The table definition defines a number of fields, each on a separate line in the following format:
@@ -86,8 +92,33 @@ The primary key separator is required in the table definition. All tables must h
 
 The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or no attributes (singleton table). A singleton table can have at most one row.
 
-## Foreign keys
+## Indexes
+Besides the primary key, a table may have a number of secondary indexes on combinations of fields.
+An additional index may be used to speed up searched by those fields.
+This is done in the format `index (attr1, attr2)` or `unique index (attr1, ..., attrn)`.
 
+Example table with additional unique indexes:
+
+```python
+@schema
+class Person(dj.Manual):
+    definition = """
+    # Table representing a person with unique identifiers
+    person_id        : int unsigned auto_increment  # Unique person identifier
+    ---
+    first_name       : varchar(50)
+    last_name        : varchar(50)
+    drivers_license  : varchar(20) = null
+    cell_phone       : varchar(15) = null
+    email            : varchar(100) = null
+    UNIQUE INDEX (drivers_license)
+    UNIQUE INDEX (cell_phone)
+    UNIQUE INDEX (email)
+    """
+```
+
+
+## Foreign keys
 Foreign keys are defined on separate lines by pointing to the class name representing a parent table.
 
 ```
@@ -106,17 +137,39 @@ A foreign key has the following effects:
 
 1. The primary key attributes of the parent table are included in the child table definition if they are not already included.
 2. A referential dependency is established between the child and the parent.
+3. An implicit index is created in the child table on the foreign key to speed up matches on foreign key attributes.
 
-## Indexes
+## Lookup tables
+Lookup tables are special tables whose contents is considered part of the schema design rather than project data.
+Therefore, its content is provided as part of the table declaration, although it can evolve over time.
 
-## Lookup tables 
-Lookup tables are special tables whose contents is considered part of the schema design rather than project data. 
-Therefore, its content is provided as part of the table declaration, although it can evolve over time. 
+For example, the following table specifies the periodic table of elements:
+```python
+import datajoint as dj
 
-For example, the following table specifies the days of the 
+schema = dj.Schema('chemistry')
 
-## Basic Attribute Types
-Database supports a small set of basic types for column attributes for storing them 
+@schema
+class ChemicalElement(dj.Lookup):
+    definition = """
+    # Lookup table for chemical elements
+    atomic_number : uint8       # Atomic number
+    ---
+    symbol        : char(2)          # Chemical symbol
+    name          : varchar(20)      # Element name
+    atomic_weight : decimal(8, 3)    # Standard atomic weight
+    """
+    contents = [
+        {'atomic_number': 1, 'symbol': 'H',  'name': 'Hydrogen',  'atomic_weight': 1.008},
+        {'atomic_number': 2, 'symbol': 'He', 'name': 'Helium',    'atomic_weight': 4.0026},
+        {'atomic_number': 3, 'symbol': 'Li', 'name': 'Lithium',   'atomic_weight': 6.94},
+        {'atomic_number': 4, 'symbol': 'Be', 'name': 'Beryllium', 'atomic_weight': 9.0122}
+    ]
+
+```
+
+## Attribute Types
+Database supports a small set of basic types for column attributes for storing them
 However, they include *binary large objects* (blobs) and files for storing large scientific data.
 Type adaptors allow defining custom types stored into the native attribute types.
 The spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
@@ -139,11 +192,11 @@ Attributes can be declared with the following types:
 
 ## File Management
 
-## Custom Types
+## Type Adaptors
 
 -------
 # Data Manipulation
-Data manipulations are operations that atler the state of the data stored in the database. 
+Data manipulations are operations that atler the state of the data stored in the database.
 
 Records (rows) in a stored table are considered immutable: each is inserted or deleted as a whole using `insert` and `delete` operators.
 
@@ -153,9 +206,9 @@ Insert comes in two flavors: `insert1` for individual records and `insert` for b
 
 ## Insert1
 
-The method `Table.insert1(rec)`inserts one record `rec` into one table. 
+The method `Table.insert1(rec)`inserts one record `rec` into one table.
 
-The record to be inserted must be fully formed and comply with all data integrity constaints: 
+The record to be inserted must be fully formed and comply with all data integrity constaints:
 * All attributes must be of the right data type, i.e. must meet attribute domain constraints specified in the table definition.
 * The record must provide values for all required fields.
 * Unique constraints must be satisfied (no duplicate value)
@@ -184,9 +237,9 @@ Student.insert1({
 
 
 ## Batch Insert
-The method `Table.insert(seq)` inserts a sequence of records. 
-In this case, entire sequence of records is inserted in a single transacation: if a single records fails to insert, the entire sequence fails. 
-This makes the `insert` operator atomic. 
+The method `Table.insert(seq)` inserts a sequence of records.
+In this case, entire sequence of records is inserted in a single transacation: if a single records fails to insert, the entire sequence fails.
+This makes the `insert` operator atomic.
 
 Example:
 ```python
@@ -203,36 +256,49 @@ Student.insert([
 ```
 
 
-## Query Insert 
+## Query Insert
 The method `Table.insert(query_expression)` to insert the result of a [query expression](#query-expressions).
 In this case, the query expression is treated similarly to the inserted sequence in batch insert and must meet the same requirements.
 
 The remarkable property of query insert is that no data is fetched to the client.
 Both the source query expression and the subsequent insert are performed server-side without sendig data to the client.
-Both the query and the insert are performed as an atomic transaction. 
+Both the query and the insert are performed as an atomic transaction.
 
 Example:
 ```python
 # insert all possible majors for all students
-StudentMajor.insert(Department.proj() * Student.proj()) 
+StudentMajor.insert(Department.proj() * Student.proj())
 ```
 
-## Delete 
+## Delete
+The delete operation removes records from a stored tables and cascades to all dependent records.
+Delete is often used in combination with the restriction operator to specify records to delete.
 
-## Update1
+Example:
+```python
+# delete all students
+Student.delete()
+
+# delete specific students
+(Student & "student_id IN (500, 501, 503)").delete()
+```
+
+
+## Update
+
 
 
 ------------
 # Queries
 
 A query is a function on the data performed on the server side, yieldig a derived table.
-The results 
+The results
 
 ## Fetch
 
 Fetching is the process of executing the qeury transferring query results from the server to the client. The fetch operation retrieves query output in various formats, typically as dictionaries, lists, or NumPy arrays.
 
-- `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of 
+- `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of
 - `fetch1()`: Ensures that only a single row is returned and raises an error if multiple rows are present. The result is typically a dictionary.
 
 ## Query Expressions
@@ -240,13 +306,15 @@ Fetching is the process of executing the qeury transferring query results from t
 
 ## Query Operators
 
-### Restriction `A & cond` and `A - cond`
+### Restriction
+`A & cond` and `A - cond`
 - by condition
 - by sequence
 - by AndList
 - by a subquery
 
-### Projection `A.proj(...)`
+### Projection
+`A.proj(...)`
 
 ### Join `A * B`
 
