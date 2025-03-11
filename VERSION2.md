@@ -98,7 +98,6 @@ An additional index may be used to speed up searched by those fields.
 This is done in the format `index (attr1, attr2)` or `unique index (attr1, ..., attrn)`.
 
 Example table with additional unique indexes:
-
 ```python
 @schema
 class Person(dj.Manual):
@@ -111,11 +110,15 @@ class Person(dj.Manual):
     drivers_license  : varchar(20) = null
     cell_phone       : varchar(15) = null
     email            : varchar(100) = null
-    UNIQUE INDEX (drivers_license)
-    UNIQUE INDEX (cell_phone)
-    UNIQUE INDEX (email)
+
+    index (last_name, first_name)
+    unique index (drivers_license)
+    unique index (cell_phone)
+    unique index (email)
     """
 ```
+This definition allows fast searches by `last_name`, `last_name`-`first_name`, as well as by other attributes with indices.
+Note that a unique index on a nullable field does not prevent multiple rows with `null` in the unique field.
 
 
 ## Foreign keys
@@ -283,10 +286,35 @@ Student.delete()
 (Student & "student_id IN (500, 501, 503)").delete()
 ```
 
-
 ## Update
+Update is used to change the values of secondary attributes in one record only.
+The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide the complete value of the primary key for the updated record and the new values for all updated attributes. 
+
+Example:
+```python
+Student.update({
+    'student_id': 1001,
+    'email': 'new_email@example.com',
+    'cell_phone': '(555)123-4567'
+})
+
+Note that this formulation is incapable of updating primary key attributes.
+The record must already exist and only secondary attributes will be updated.
+Modifying the primary key requires deleting and reinserting the record.
 
 
+## Effect of Foreign Key Constraints 
+Foreign keys in DataJoint enforce referential integrity, affecting how insert, delete, and update1 operations behave.
+
+When using `insert` or `insert1`, foreign key constraints require that referenced records exist in the parent table before dependent records can be added.
+This ensures that no orphaned entries are created.
+If a foreign key references a non-existent record, the insertion will fail.
+This rule helps maintain consistency by preventing invalid references in dependent tables.
+
+On deletion (`delete`), foreign keys enforce cascading behavior, meaning that deleting a referenced record automatically removes all dependent records downstream.
+This prevents data inconsistencies by ensuring that no dependent records exist without their required parent records.
+
+For updates, `update1` modifies secondary attributes of a single record. An update can fail if the secondary attribute is part of a foreign key and no matching record is found in the parent table.
 
 ------------
 # Queries
