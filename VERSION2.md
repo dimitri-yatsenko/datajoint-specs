@@ -189,11 +189,75 @@ Attributes can be declared with the following types:
 | **Enumeration** | `enum('value1', 'value2', 'value3')` ||
 | **Date** | `date` | in ISO 8601 standard. Special value `NOW` can be used as default |
 | **Time** | `timestamp`  |  Microsecond precision in UTC in ISO 8601 standard. Special value `NOW` can be used for default. |
-| **Binary large object** | `blob` ||
-| **File or folder** | `file`, `file@store` | where `store` is a named storage backend.
-| **Custom type** | `<adaptor_name>` | see Type Adaptors |
+| **Binary large object** | `blob` |
+| **File or folder** | `file` | a file or folder [managed by DataJoint](#file-management).|
+| **Custom type** | `<adaptor_name>` | [type-adaptors](#type-adaptors) |
 
 ## File Management
+In DataJoint tables, the `file` datatype enable *file-augmented schemas*, where structured data resides in a relational database, and large scientific data objects are stored externally.
+This integration of structured data with large data structures, such as multidimensional arrays, is a key advantage of DataJoint.
+
+Files are managed like other database attributes but are stored in a systematically organized hierarchical folder structure within a configurable file backend.
+They are created and accessed through standard operations and queries: `insert`, `delete`, and `fetch`.
+Data operations on files provide the same consistency and integrity guarantees as data stored in the database.
+
+### Storage Backend Configuration
+A DataJoint client is configured to access a storage backend.
+For each insert and fetch operation, the client constructs the relative path for the file fields.
+The database entry for the file type stores metadata such as file extension, size, checksum, and tags.
+The hierarchical structure is configurable as part of the storage backend configuration.
+A common pattern may appear as follows:
+```bash
+📁 schema_name1/
+📁 schema_name2/
+📁 schema_name3/
+├── schema.py
+├── 📁 tables
+│   ├── table1.parquet
+│   ├── table2.parquet
+│    ...
+├── 📁 fields
+│   ├── table1-field1/key3-value3.zarr
+│   ├── table1-field2/key3-value3.gif
+...  ...
+```
+This file hierarchy serves to store a dump of the tabular relational data in the tables subfolder and the contents of the file fields in the fields subfolder.
+The table name, field name, and primary key attributes form the path using a configurable pattern.
+Several options are available for partitioning this file repository based on the values of a specific subset of primary key attributes.```
+
+
+The `file` datatype serves to supports the notion of *file-augmented schemas*: a setup where structured data are stored in the relational database but large scientific data objects are stored in externally organized files.
+The harmonious combination of structured relational data and large scientific data structures (such as multidimensionsal arrays) is one of DataJoint's defining advantages.
+Files are managed just like other attributes in the database but are stored in a systematically organized hierarchical folder structure in a configurable file backend.
+Files are created and accessed as part of regular operations and queries: `insert`, `delete`, and `fetch`.
+
+A DataJoint client is configured to access a storage backend.
+For each insert and fetch, the client constructs the relative path for the file fields.
+The database entry for the file type stores the metadata information such as the file extension, size, checksum, tags, etc.
+Although hierarchical structure is configurable as part of the storage backend configuration, a common pattern may appear as follows:
+```
+📁 schema_name1/
+📁 schema_name2/
+📁 schema_name3/
+├── schema.py
+├── 📁 tables
+│   ├── table1.parque
+│   ├── table2.parque
+│    ...
+├── 📁 fields
+│   ├── table1-field1/key3-value3.zarr
+│   ├── table1-field2/key3-value3.gif
+...  ...
+```
+
+This file hierarchy serves both to store a dump of the tabular relational data in the `table` subfolder and the contents of the file fields in the `file` subfolder.
+The table name, field name, and primary key attributes form the path using a configurable pattern.
+Several options are made available for partitioning this file repository based on the values of a specific subset of primary key attributes.
+
+### File Operations
+The DataJoint client uses the [`fsspec`]((https://filesystem-spec.readthedocs.io/en/latest/) protocol or similar, supporting various storage backends.
+During insertion, a field of type file expects a bytestream or a callback function that accepts a path as its argument and writes its contents to that path.
+DataJoint constructs the file structure and hierarchy accordingly.
 
 ## Type Adaptors
 
@@ -292,7 +356,8 @@ The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide the
 
 Example:
 ```python
-Student.update({
+# Update email and cellphone for student 1001
+Student.update1({
     'student_id': 1001,
     'email': 'new_email@example.com',
     'cell_phone': '(555)123-4567'
