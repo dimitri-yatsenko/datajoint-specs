@@ -31,7 +31,7 @@ By combining the rigor of the relational data model with support for large scien
 
 | Term | Definition |
 |---|---|
-|**DataJoint project**| Also commonly described as *database*, *pipeline* or *workflow*. A DataJoint project combines a database comprising multiple schemas, a `git` code repository, and a hierarchical file repository.|
+|**DataJoint Project**| Also commonly described as *database*, *pipeline* or *workflow*. A DataJoint project combines a relational database (with multiple schemas), a `git` code repository, and a hierarchical file store.|
 |**Schema**| (a) A collection of table definitions with integrity constraints and (b) a namespace for organizing related tables. |
 |**Table**| The single fundamental data structure in the relational data model. A table can be either a named stored table represented as a class or a derived result represented as a query expression. A table consists of named and typed columns (attributes) and unordered rows with values for each attribute. |
 |**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
@@ -54,7 +54,7 @@ Schema design is mirrored by the package design of in the scientific language wi
 A one-to-one correspondence is strongly recommended between schemas in the databases and separate modules in the programming language.
 
 ## Table Definition
-Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and seconday indexes.
+Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and secondary indexes.
 
 ## Table Name
 Tables are represented as classes in the programming language, whose names follow the CamelCase notation.
@@ -66,8 +66,8 @@ Each table is designated as one of four tiers:
 |---|---|
 |`lookup`| Data that are part of the schema definition rather than project data: parameters, general facts.|
 |`manual`| Data entered from external sources.|
-|`computed`| Data are automatically computed by accessnig data upstream in the pipeline.|
-|`imported`| Data are automatically computed by accessing data upsteeam in the pipeline, accessing external sources.|
+|`computed`| Data are automatically computed by accessing data upstream in the pipeline.|
+|`imported`| Data are automatically computed by accessing data upstream in the pipeline, but also accessing external data sources in the process.|
 
 ## Attribute Definition
 The table definition defines a number of fields, each on a separate line in the following format:
@@ -161,7 +161,7 @@ class ChemicalElement(dj.Lookup):
     ---
     symbol        : char(2)          # Chemical symbol
     name          : varchar(20)      # Element name
-    atomic_weight : decimal(8, 3)    # Standard atomic weight
+    atomic_weight : decimal(7, 4)    # Standard atomic weight
     """
     contents = [
         {'atomic_number': 1, 'symbol': 'H',  'name': 'Hydrogen',  'atomic_weight': 1.008},
@@ -173,10 +173,10 @@ class ChemicalElement(dj.Lookup):
 ```
 
 ## Attribute Types
-Database supports a small set of basic types for column attributes for storing them
-However, they include *binary large objects* (blobs) and files for storing large scientific data.
-Type adaptors allow defining custom types stored into the native attribute types.
-The spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
+Database supports a small set of basic types for column attributes for storing them.
+These types mask and supplant the data types supported natively by the relational backends ([postgres](https://www.postgresql.org/docs/current/datatype.html) and [mysql](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)] to focus on the needs of data science and experimental science.
+This spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
+
 
 Attributes can be declared with the following types:
 
@@ -194,7 +194,10 @@ Attributes can be declared with the following types:
 | **File or folder** | `file` | a file or folder [managed by DataJoint](#file-management).|
 | **Custom type** | `<adaptor_name>` | [type-adaptors](#type-adaptors) |
 
-## Type Adaptors 
+The types *binary large objects* (blobs) and files provide support for storing large scientific data.
+Type adaptors allow defining convenient operational interfaces for stored data objects.
+
+## Type Adaptors
 
 ---
 # File Management
@@ -210,31 +213,58 @@ A DataJoint client is configured to access the storage backend associated with e
 For each insert and fetch operation, the client constructs the relative path for the file fields.
 The database entry for the file type stores metadata such as file extension, size, checksum, and tags.
 The hierarchical structure is configurable as part of the storage backend configuration.
-A common pattern may appear as follows:
+
+A typical pattern may be as follows:
 ```bash
-📁 schema_name1/
-📁 schema_name2/
-📁 schema_name3/
-├── schema.py
-├── 📁 tables
-│   ├── table1.parquet
-│   ├── table2.parquet
-│    ...
-├── 📁 fields
-│   ├── table1-field1/key3-value3.zarr
-│   ├── table1-field2/key3-value3.gif
+📁 project_name/
+├── datajoint.toml <or> datajoint.yaml
+├──📁 schema_name1/
+├──📁 schema_name2/
+├──📁 schema_name3/
+│  ├── schema.py
+│  ├── 📁 tables
+│  │   ├── table1.parquet
+│  │   ├── table2.parquet
+│  │   ...
+│  ├── 📁 fields
+│  │   ├── table1-field1/key3-value3.zarr
+│  │   ├── table1-field2/key3-value3.gif
 ...  ...
 ```
-This file hierarchy serves to store a dump of the tabular relational data in the tables subfolder and the contents of the file fields in the fields subfolder.
+This file hierarchy serves to store a complete copy of the tabular relational data in the `tables` subfolder and the contents of the file fields in the fields subfolder.
 The table name, field name, and primary key attributes form the path using a configurable pattern.
 Several options are available for partitioning this file repository based on the values of a specific subset of primary key attributes.```
 
+The `datajoint.toml` configuration file is essential for setting up a DataJoint store to support a project.
+It defines the repository's organization, and key information within this file should remain unchanged after data population to avoid issues with existing data.
+
+## Partitioning
+The backend configuration allows selection of primary key attributes for data partitioning, guiding DataJoint to create subfolders for hierarchical data organization.
+
+For example, specifying the partitioning in datajoint.toml as:
+```toml
+# Configuration for data storage
+[data_storage]
+partition_pattern = "subject{subject_id}/session{session_id}"
+```
+In this configuration:
+* `[data_storage]`: Defines settings for data storage-related configurations.
+* `partition_pattern`: Specifies the partitioning scheme, where placeholders {subject_id} and {session_id} are dynamically replaced with actual values during data operations.
+
+This setup organizes data into subject/session subfolders, facilitating hierarchical navigation and browsing.
 
 ## File Operations
-The DataJoint client uses the [`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/) protocol or similar, supporting various storage backends.
-During insertion, a field of type file expects a bytestream or a callback function that accepts a path as its argument and writes its contents to that path.
-DataJoint constructs the file structure and hierarchy accordingly.
+The DataJoint client uses protocols such as [`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/), supporting various storage backends.
+During insertion, a field of type `file` expects a bytestream or a callback function that accepts a path as its argument and writes its contents to that path.
+The DataJoint client constructs the file structure and hierarchy according to the specied configuration.
 
+## Export, Sharing, and Backup/Restore
+The structured project data folder serves as a comprehensive, publishable copy of the data, accessible and querying  by DataJoint and  other tools.
+It is designed for both human navigation and tool accessibility.
+The Schema Diagram object provides methods for selecting portions of the data for export, including specific tables and data slices.
+
+The export method recreates the data repository in full at another location.
+DataJoint offers tools to restore the database from the file repository using the tabular data, supporting data publishing and pipeline cloning alongside the data.
 
 -------
 # Data Operations
@@ -327,7 +357,7 @@ Student.delete()
 
 ## Update
 Update is used to change the values of secondary attributes in one record only.
-The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide the complete value of the primary key for the updated record and the new values for all updated attributes. 
+The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide the complete value of the primary key for the updated record and the new values for all updated attributes.
 
 Example:
 ```python
@@ -344,7 +374,7 @@ The record must already exist and only secondary attributes will be updated.
 Modifying the primary key requires deleting and reinserting the record.
 
 
-## Effect of Foreign Key Constraints 
+## Effect of Foreign Key Constraints
 Foreign keys in DataJoint enforce referential integrity, affecting how insert, delete, and update1 operations behave.
 
 When using `insert` or `insert1`, foreign key constraints require that referenced records exist in the parent table before dependent records can be added.
