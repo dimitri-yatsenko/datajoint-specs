@@ -297,6 +297,7 @@ Student.update({
     'email': 'new_email@example.com',
     'cell_phone': '(555)123-4567'
 })
+```
 
 Note that this formulation is incapable of updating primary key attributes.
 The record must already exist and only secondary attributes will be updated.
