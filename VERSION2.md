@@ -2,10 +2,11 @@
 ---
 
 # Introduction
-
-DataJoint is a software framework for managing scientific data and computations.
+DataJoint implements the concept of a *computational database*.
 It relies on the relational database model for data organization, transaction processing, and queries.
-Computation is incorporated as a first-class citizen in the data model.
+Computation is incorporated as a first-class citizen in the data model: similar to how spreadsheets represent values or formulas in their cells, DataJoint supports databases where some tables represent data and some tables represent computations.
+DataJoint is designed for extensibility to support complex scientific data types (e.g. large multidimensional arrays) and for direct invocation from a scientific programming language such as Python. 
+Thus DataJoint solves a fundamental problem in data science: how to combine structured tabular data with scientific data types and embedded computations.
 
 This document provides API specifications, establishing a common language for implementing computational databases and interacting with them.
 
