@@ -1,7 +1,7 @@
 # DataJoint 2.0 Specifications
 ---
 # Introduction
-DataJoint introduces the concept of a **computational database**, extending the relational model to integrate computation as a core feature. Just as spreadsheets manage both raw values and formulas, DataJoint enables databases where some tables store data, while others define computations.
+DataJoint introduces the concept of a **computational database**, extending the relational model to integrate computation as a core feature. Just as spreadsheets manage both raw values and formulas, DataJoint enables databases where some tables store data, while others define computations and store computed results.
 
 Designed for scientific workflows, DataJoint ensures **data integrity**, **transaction processing**, and direct **integration with programming languages like Python**.
 It extends relational databases to handle complex scientific data types, such as large multidimensional arrays, and embeds computation within the data model using **foreign keys to define dependencies**.
@@ -21,7 +21,10 @@ While some definitions reflect Python conventions, the specification is designed
 
 This specification defines **how computations are structured within the data model** but leaves the execution framework for orchestrating compute jobs up to the implementation.
 
-By combining the rigor of relational databases with built-in support for scientific data and computations, DataJoint empowers researchers to design, implement, and share scalable data
+By combining the rigor of relational databases with built-in support for scientific data and computations, DataJoint empowers researchers to design, implement, and share scalable data.
+
+This specification defines DataJoint 2.0, a major upgrade from earlier versions, introducing enhanced features for scalability, extensibility, and interoperability.
+A new Python implementation is planned for 2025, aligning with modern best practices to improve usability, performance, and integration with scientific computing frameworks.
 
 ## Terminology  
 
@@ -34,7 +37,7 @@ DataJoint follows established terminology from relational databases and data fra
 | **Table** | The core data structure in the relational model. A table can be a named stored table (represented as a class) or a derived result (expressed as a query). It consists of named and typed columns (attributes) and unordered rows. |
 | **Attribute** (**Column** or **Field**) | A named element in a table with a specified data type. Attributes are always identified by name, never by position. |
 | **Row** (**Record** or **Tuple**) | A single entry in a table, providing values for each attribute. Rows are unordered and uniquely identified by their primary key. |
-| **Query** | A function performed on stored data at the server level, expressed as a *query expression* and returning a new, derived table. |
+| **Query** | A function performed on stored data, expressed as a *query expression* and returning a new, derived table. |
 | **Query Expression** | A formal definition of a query using [query operators](#query-operators) to manipulate and retrieve data. |
 | **Fetch** | The execution of a query on the server and transfer of the result to the client. |
 | **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit. All operations succeed together, or none are applied. Partial results remain invisible outside the transaction. |
@@ -42,7 +45,10 @@ DataJoint follows established terminology from relational databases and data fra
 
 ---
 
-# Schema Definition
+# Database Design
+
+## Database
+A DataJoint project implements a data pipeline.
 
 ## Schema
 
