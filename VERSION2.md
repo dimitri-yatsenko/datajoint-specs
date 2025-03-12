@@ -1,20 +1,27 @@
-# DataJoint 2.0 Specification
+# DataJoint 2.0 Specifications
 ---
-
 # Introduction
-DataJoint implements the concept of a *computational database*.
-It relies on the relational database model for data organization, transaction processing, and queries.
-Computation is incorporated as a first-class citizen in the data model: similar to how spreadsheets represent values or formulas in their cells, DataJoint supports databases where some tables represent data and some tables represent computations.
-DataJoint is designed for extensibility to support complex scientific data types (e.g. large multidimensional arrays) and for direct invocation from a scientific programming language such as Python. 
-Thus DataJoint solves a fundamental problem in data science: how to combine structured tabular data with scientific data types and embedded computations.
+DataJoint introduces the concept of a **computational database**, extending the relational model to integrate computation as a core feature. Just as spreadsheets manage both raw values and formulas, DataJoint enables databases where some tables store data, while others define computations.
 
-This document provides API specifications, establishing a common language for implementing computational databases and interacting with them.
+Designed for scientific workflows, DataJoint ensures **data integrity**, **transaction processing**, and direct **integration with programming languages like Python**.
+It extends relational databases to handle complex scientific data types, such as large multidimensional arrays, and embeds computation within the data model using **foreign keys to define dependencies**.
 
-The reference implementation is for Python, using MySQL or PostgreSQL as backends.
-As a result, some definitions may have a Python-oriented flavor.
-However, this specification is designed for easy adoption in other programming languages while maintaining full interoperability.
+## Key Objectives
+* **Relational foundation** – Built on a rigorous relational database model.
+* **Data integrity** – Enforces constraints to ensure consistency and validity.
+* **ACID transactions** – Supports atomic, consistent, isolated, and durable operations.
+* **Scientific programming interface** – Enables schema definition, data manipulation, and queries directly from Python or other languages.
+* **Scalability for large data** – Supports scientific data formats and efficient storage.
+* **Embedded computation** – Integrates computation natively within the data model.
+* **Extensibility** – Allows storing complex data structures beyond standard relational types.
 
-It is important to note that this specification does not cover implementation details for the computational backend, which  orchestrates compute jobs; its scope is limited to the formal definition of such computations.
+This document defines the API specification for implementing and interacting with computational databases.
+The reference implementation is in Python, using MySQL and PostgreSQL backends.
+While some definitions reflect Python conventions, the specification is designed for easy adoption in other languages with full interoperability.
+
+This specification defines **how computations are structured within the data model** but leaves the execution framework for orchestrating compute jobs up to the implementation.
+
+By combining the rigor of relational databases with built-in support for scientific data and computations, DataJoint empowers researchers to design, implement, and share scalable data
 
 ## Key Objectives
 
