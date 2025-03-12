@@ -44,14 +44,18 @@ DataJoint follows established terminology from relational databases and data fra
 
 ---
 
-# Database Design
+# Pipeline Design
 
-## Database
+## Project = Pipeline
 A DataJoint project implements a data pipeline.
 
-## Schema
+![Schema Design](pipeline-illustration.png)  
+
+## Module = Schema
 
 Tables are organized into schemas. Each schema represents a namespace in the database.
+
+![Schema Design](schema-illustration.png)  
 
 Schema design is mirrored by the package design of in the scientific language with schemas mapping to modules and tables mapping to classes.
 
