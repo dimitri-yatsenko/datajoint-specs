@@ -16,38 +16,29 @@ It extends relational databases to handle complex scientific data types, such as
 * **Extensibility** – Allows storing complex data structures beyond standard relational types.
 
 This document defines the API specification for implementing and interacting with computational databases.
-The reference implementation is in Python, using MySQL and PostgreSQL backends.
+The [reference implementation](https://github.com/datajoint/datajoint-python) is in Python, using MySQL and PostgreSQL backends.
 While some definitions reflect Python conventions, the specification is designed for easy adoption in other languages with full interoperability.
 
 This specification defines **how computations are structured within the data model** but leaves the execution framework for orchestrating compute jobs up to the implementation.
 
 By combining the rigor of relational databases with built-in support for scientific data and computations, DataJoint empowers researchers to design, implement, and share scalable data
 
-## Key Objectives
+## Terminology  
 
-- **Relational database backend** – Built on a rigorous relational model.
-- **Data integrity constraints** – Ensures consistency and validity.
-- **Transaction processing** – Supports atomic, consistent, isolated, and durable (ACID) transactions.
-- **Scientific programming interface** – Enables schema definition, data manipulation, and queries directly from a scientific programming language (e.g., Python).
-- **Management of large data files** – Supports scientific data formats and efficient storage.
-- **Embedded computation** – Integrates computation as a native construct in the data model, using foreign keys to define dependencies.
-- **Extensibility** – Allows for storing complex data structures beyond standard relational types.
-
-By combining the rigor of the relational data model with support for large scientific datasets and built-in computational workflows, DataJoint empowers scientists to design, implement, and share powerful data pipelines..
-
-## Terminology
+DataJoint follows established terminology from relational databases and data frameworks. The definitions below clarify how these terms are used in this document.  
 
 | Term | Definition |
 |---|---|
-|**DataJoint Project**| Also commonly described as *database*, *pipeline* or *workflow*. A DataJoint project combines a relational database (with multiple schemas), a `git` code repository, and a hierarchical file store.|
-|**Schema**| (a) A collection of table definitions with integrity constraints and (b) a namespace for organizing related tables. |
-|**Table**| The single fundamental data structure in the relational data model. A table can be either a named stored table represented as a class or a derived result represented as a query expression. A table consists of named and typed columns (attributes) and unordered rows with values for each attribute. |
-|**Attribute** (**Column** or **Field**)| A named attribute  with a specific data type. Identified by name, never by position. |
-|**Row** (**Record** or **Tuple**) | A single entry in a table, providing values for each attribute. The order of rows in a table is not significant. Rows are identified and addressed by their primary key.|
-|**Query**|A function performed on the stored data on the server side, expressed as a *query expression* and resulting in a new, derived table.|
-|**Query Expression**|The formal definition of a query expressed with through [query operators](#query-operators).|
-|**Fetch**|The execution of a query on the server and transferring the result to the client.|
-|**Transaction**|A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit. All operations are performed correctly or not at all. Partial results are not seen by anyone outside the transaction.|
+| **DataJoint Project** | Also referred to as a *database*, *pipeline*, or *workflow*. A DataJoint project consists of a relational database (with multiple schemas), a `git` code repository, and a hierarchical file store. |
+| **Schema** | (a) A collection of table definitions with integrity constraints and (b) a namespace for organizing related tables. |
+| **Table** | The core data structure in the relational model. A table can be a named stored table (represented as a class) or a derived result (expressed as a query). It consists of named and typed columns (attributes) and unordered rows. |
+| **Attribute** (**Column** or **Field**) | A named element in a table with a specified data type. Attributes are always identified by name, never by position. |
+| **Row** (**Record** or **Tuple**) | A single entry in a table, providing values for each attribute. Rows are unordered and uniquely identified by their primary key. |
+| **Query** | A function performed on stored data at the server level, expressed as a *query expression* and returning a new, derived table. |
+| **Query Expression** | A formal definition of a query using [query operators](#query-operators) to manipulate and retrieve data. |
+| **Fetch** | The execution of a query on the server and transfer of the result to the client. |
+| **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, and durable (ACID-compliant) unit. All operations succeed together, or none are applied. Partial results remain invisible outside the transaction. |
+
 
 ---
 
