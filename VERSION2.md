@@ -1,7 +1,7 @@
 # DataJoint 2.0 Specifications
 ---
 
-# Introduction  
+# Introduction
 
 DataJoint introduces the concept of a **computational database**, extending the relational model to integrate computation as a fundamental feature. Just as spreadsheets manage both raw values and formulas, DataJoint enables databases where some tables store data, while others define computations and store computed results. This approach supports structured, scalable, and reproducible data processing—essential for scientific workflows.
 
@@ -11,23 +11,23 @@ This specification defines **DataJoint 2.0**, a major upgrade from earlier versi
 
 The document serves as the API specification for implementing and interacting with computational databases. The [reference implementation](https://github.com/datajoint/datajoint-python) is in Python, using **MySQL** and **PostgreSQL** backends. While some definitions reflect Python conventions, the specification is designed for **adoption in other languages** with full interoperability.
 
-## Key Objectives  
+## Key Objectives
 
-- **Relational foundation** – Built on a rigorous relational database model.  
-- **Data integrity** – Enforces constraints to ensure consistency and validity.  
-- **ACID transactions** – Supports atomic, consistent, isolated, and durable operations.  
-- **Scientific programming interface** – Enables schema definition, data manipulation, and queries directly from Python or other languages.  
-- **Scalability for large data** – Supports scientific data formats and efficient storage.  
-- **Embedded computation** – Integrates computation natively within the data model.  
-- **Extensibility** – Allows storing complex data structures beyond standard relational types.  
+- **Relational foundation** – Built on a rigorous relational database model.
+- **Data integrity** – Enforces constraints to ensure consistency and validity.
+- **ACID transactions** – Supports atomic, consistent, isolated, and durable operations.
+- **Scientific programming interface** – Enables schema definition, data manipulation, and queries directly from Python or other languages.
+- **Scalability for large data** – Supports scientific data formats and efficient storage.
+- **Embedded computation** – Integrates computation natively within the data model.
+- **Extensibility** – Allows storing complex data structures beyond standard relational types.
 
 This specification defines **how computations are structured within the data model** but does not prescribe how they are executed—leaving implementation details for orchestrating compute jobs up to the chosen backend.
 
 By combining the rigor of relational databases with built-in support for scientific data and computations, **DataJoint empowers researchers to design, implement, and share scalable data pipelines**.
 
-## Terminology  
+## Terminology
 
-DataJoint follows established terminology from relational databases and data frameworks. The definitions below clarify how these terms are used in this document.  
+DataJoint follows established terminology from relational databases and data frameworks. The definitions below clarify how these terms are used in this document.
 
 | Term | Definition |
 |---|---|
@@ -41,6 +41,31 @@ DataJoint follows established terminology from relational databases and data fra
 | **Fetch** | The execution of a query on the server and **transfer of the result to the client**. |
 | **Transaction** | A sequence of database operations executed as an **atomic, consistent, isolated, and durable (ACID-compliant) unit**. All operations succeed together, or none are applied. Partial results remain invisible outside the transaction. |
 
+## FAQs
+
+### Is DataJoint an ORM?
+
+**Object-Relational Mapping (ORM)** is a technique that enables developers to interact with relational databases using object-oriented programming (OOP) principles, abstracting away direct SQL queries.
+Popular Python ORMs include **SQLAlchemy** and **Django ORM**, which are widely used in web development.
+
+While DataJoint shares some characteristics with ORMs, it is fundamentally **a computational database framework designed for scientific workflows** rather than a general-purpose ORM.
+Unlike traditional ORMs that primarily focus on **simplifying database interactions for web applications**, DataJoint defines **explicit data dependencies and integrates computation within the relational model**, ensuring **data integrity, traceability, and reproducibility** in scientific pipelines.
+
+Thus, DataJoint can be considered an **ORM for scientific databases**, purpose-built for managing structured experimental data and computational workflows.
+
+### Is DataJoint a Workflow Management System?
+
+Not exactly.
+DataJoint provides **computational database capabilities**, embedding computation within a relational database model.
+While it orchestrates computations by **tracking dependencies and managing derived data**, it does not handle **task scheduling, distributed execution, or parallel job orchestration** like traditional workflow management systems (e.g., Apache Airflow or Nextflow).
+Instead, DataJoint **formalizes data dependencies** and allows external workflow systems to schedule and execute computations as needed.
+
+### Is DataJoint a Data Lake or Lakehouse?
+
+No, DataJoint is neither a **data lake** nor a **lakehouse**.
+Data lakes store **raw, unstructured, and semi-structured data** without enforcing a strict schema, while lakehouses combine **schema enforcement with large-scale data lake storage**.
+In contrast, DataJoint is a **relational database framework** with a structured schema, ensuring **data integrity, traceability, and computational dependency management**.
+However, DataJoint can **interoperate with data lakes** by storing metadata, managing references, and orchestrating computations on data stored in file systems or cloud storage.
 
 ---
 
@@ -49,13 +74,13 @@ DataJoint follows established terminology from relational databases and data fra
 ## Project = Pipeline
 A DataJoint project implements a data pipeline.
 
-![Schema Design](figures/pipeline-illustration.png)  
+![Schema Design](figures/pipeline-illustration.png)
 
 ## Module = Schema
 
 Tables are organized into schemas. Each schema represents a namespace in the database.
 
-![Schema Design](figures/schema-illustration.png)  
+![Schema Design](figures/schema-illustration.png)
 
 Schema design is mirrored by the package design of in the scientific language with schemas mapping to modules and tables mapping to classes.
 
@@ -420,7 +445,7 @@ Fetching is the process of executing the qeury transferring query results from t
 
 ### Restriction by a Condition
 
-### Restriction by a Sequence 
+### Restriction by a Sequence
 - by AndList
 
 ### Restriction by a Subquery
@@ -451,7 +476,7 @@ from a query expression is  produce tables that  in DataJoint always yield new t
 This property enables DataJoint to support composable and declarative data queries in a fully relational manner.
 
 ## Semantic match
-For binary operators in becomes necessary to match rows in one 
+For binary operators in becomes necessary to match rows in one
 
 In binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), must relate rows in table `A` to rows in table `B`.
 
