@@ -52,9 +52,13 @@ Thus, DataJoint can be considered an **ORM specialized for scientific databases*
 
 Not exactly. DataJoint provides robust capabilities for embedding computations within a relational database structure, managing derived data, and tracking explicit data dependencies. However, DataJoint itself does not handle scheduling, distributed execution, or orchestration of parallel computational tasks, which are typical roles of workflow management systems such as Apache Airflow or Nextflow. Instead, DataJoint complements these systems, formalizing data dependencies so that external workflow schedulers can effectively manage computational tasks.
 
-### Is DataJoint a Data Lake or Lakehouse?
+### Is DataJoint similar to a Lakehouse?
 
-No, DataJoint is neither a **data lake** nor a **lakehouse**. Data lakes store raw, often unstructured or semi-structured data without strict schema enforcement. Lakehouses blend structured schema enforcement with flexible large-scale storage. In contrast, DataJoint is firmly a relational database framework, with structured schemas ensuring data integrity, traceability, and precise dependency management. However, DataJoint pipelines can interact with data lakes and lakehouses by maintaining metadata references and orchestrating computations on external storage solutions.
+DataJoint and lakehouses share some similar goals—such as integrating structured data management with scalable storage and computational capabilities. However, a **lakehouse** typically merges the flexibility of **data lakes** (handling raw, semi-structured data at scale) with the structured schemas and transactional guarantees of traditional databases.
+
+In contrast, **DataJoint** focuses specifically on scientific data workflows, emphasizing rigorous **schema definitions**, explicit **computational dependencies**, and robust **data integrity**. While lakehouses offer flexible analytics on structured and unstructured data, DataJoint prioritizes precise data modeling, reproducibility, and computational traceability within structured scientific datasets.
+
+Therefore, DataJoint complements lakehouse architectures but is tailored specifically for managing structured experimental data and computational pipelines in science.
 
 ---
 
