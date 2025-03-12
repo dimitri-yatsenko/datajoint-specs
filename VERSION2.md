@@ -4,7 +4,7 @@
 
 DataJoint extends the relational database model into a **computational database**, integrating data storage with computational workflows. Just as spreadsheets handle raw values alongside formulas, DataJoint manages datasets alongside computed results—supporting reproducible, structured, and scalable scientific data processing.
 
-At its core, a **computational database** functions as a **scientific data pipeline**, explicitly defining the dependencies between data acquisition, transformation, and analysis steps. DataJoint provides built-in mechanisms to ensure **data integrity**, support **transactional operations (ACID compliance)**, and seamlessly integrate with scientific programming languages such as Python. It expands traditional relational capabilities to include handling of **complex scientific data types** (e.g., multidimensional arrays), embedding computations directly in the data model via **foreign-key dependencies**.
+A **computational database** often plays the role of a **scientific data pipeline**, explicitly defining the dependencies between data acquisition, transformation, and analysis steps. DataJoint provides built-in mechanisms to ensure **data integrity**, support **transactional operations (ACID compliance)**, and seamlessly integrate with scientific programming languages such as Python. It expands traditional relational capabilities to include handling of **complex scientific data types** (e.g., multidimensional arrays), embedding computations directly in the data model via **foreign-key dependencies**.
 
 This document presents the API specification for **DataJoint 2.0**, a major evolution designed for enhanced **scalability, extensibility, and interoperability**. A new Python reference implementation is planned for release in **2025**, incorporating best practices for usability, performance, and integration within modern scientific computing frameworks. The current [reference implementation](https://github.com/datajoint/datajoint-python) uses MySQL and PostgreSQL backends. While certain aspects reflect Python conventions, the specification is intended for straightforward adoption across diverse programming languages with full interoperability.
 
@@ -33,8 +33,8 @@ DataJoint adopts familiar terms from relational database theory and clearly defi
 | **Table** | The core relational data structure, either stored permanently (base table) or derived temporarily (query result). Tables have named and typed **columns (attributes)** and unordered **rows**. |
 | **Attribute** (**Column**/**Field**) | A named, typed element of a table. Always referenced by name, never by position. |
 | **Row** (**Record**/**Tuple**) | A single entry in a table with values corresponding to each attribute. Rows are uniquely identified by their **primary key**. |
-| **Query** | A server-side operation performed on stored data, expressed as a **query expression**, resulting in a new derived table. |
-| **Query Expression** | A formal definition combining tables using [query operators](#query-operators) to produce derived results. |
+| **Query** | A function on stored data, expressed as a [**query expression**](#query-expressions), resulting in a new derived table. |
+| **Query Expression** | A formal definition of a query expressed with [query operators](#query-operators)  acting on input tables to define a new output table. 
 | **Fetch** | The execution of a query and transfer of results from server to client. |
 | **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, durable (ACID) unit. All operations succeed or fail together, with partial results invisible externally. |
 
