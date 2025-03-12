@@ -361,7 +361,7 @@ The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide the
 
 Example:
 ```python
-# Update email and cellphone for student 1001
+# Update email and cellphone for student id 1001
 Student.update1({
     'student_id': 1001,
     'email': 'new_email@example.com',
@@ -375,17 +375,19 @@ Modifying the primary key requires deleting and reinserting the record.
 
 
 ## Effect of Foreign Key Constraints
-Foreign keys in DataJoint enforce referential integrity, affecting how insert, delete, and update1 operations behave.
+Foreign keys enforce referential integrity, which is enforced by restricting how insert, delete, and update1 operations behave.
 
-When using `insert` or `insert1`, foreign key constraints require that referenced records exist in the parent table before dependent records can be added.
+* **Insert**: When using `insert` or `insert1`, foreign key constraints require that referenced records exist in the parent table before dependent records can be added.
 This ensures that no orphaned entries are created.
 If a foreign key references a non-existent record, the insertion will fail.
 This rule helps maintain consistency by preventing invalid references in dependent tables.
 
-On deletion (`delete`), foreign keys enforce cascading behavior, meaning that deleting a referenced record automatically removes all dependent records downstream.
+* **Delete**: On deletion (`delete`), foreign keys enforce cascading behavior, meaning that deleting a referenced record automatically removes all dependent records downstream.
 This prevents data inconsistencies by ensuring that no dependent records exist without their required parent records.
 
-For updates, `update1` modifies secondary attributes of a single record. An update can fail if the secondary attribute is part of a foreign key and no matching record is found in the parent table.
+* **Update**: For updates, `update1` modifies secondary attributes of a single record. An update can fail if the secondary attribute is part of a foreign key and no matching record is found in the parent table.
+
+* **Drop**: When a table is dropped from the schema, all dependent tables will be dropped as well. DataJoint client provides a full list of tables to be dropped before executing the schema update.
 
 ------------
 # Queries
@@ -397,7 +399,7 @@ The results
 
 Fetching is the process of executing the qeury transferring query results from the server to the client. The fetch operation retrieves query output in various formats, typically as dictionaries, lists, or NumPy arrays.
 
-- `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of
+- `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of dictionaries.
 - `fetch1()`: Ensures that only a single row is returned and raises an error if multiple rows are present. The result is typically a dictionary.
 
 ## Query Expressions
@@ -405,26 +407,33 @@ Fetching is the process of executing the qeury transferring query results from t
 
 ## Query Operators
 
-### Restriction
+## Restriction
 `A & cond` and `A - cond`
-- by condition
-- by sequence
-- by AndList
-- by a subquery
 
-### Projection
+### Restriction by a Condition
+
+### Restriction by a Sequence 
+- by AndList
+
+### Restriction by a Subquery
+
+## Projection
 `A.proj(...)`
 
-### Join `A * B`
+## Join `A * B`
 
-### Union `A + B`
+## Union `A + B`
 
-### Universal Sets `dj.U()`
+## Universal Sets `dj.U()`
 
 
 ## Algebraic Closure
 
-Algebraic closure refers to the property that query operations in DataJoint always yield new tables, which can be further queried without any loss of relational integrity. This ensures that any combination of joins, restrictions, projections, and other operations results in a valid table that can be used as input for further operations.
+In DataJoint, the operands and the output of any query operator are well-formed relational tables having named columns of known data types and a well-defined primary key.
+This property is described as as *algebraic closure*, which is essential for constructing complex queries from simple ones.
+
+
+from a query expression is  produce tables that  in DataJoint always yield new tables, which can be further queried without any loss of relational integrity. This ensures that any combination of joins, restrictions, projections, and other operations results in a valid table that can be used as input for further operations.
 
 - **Closure under Join (**``**)**: The result of a join between two tables is always a table that can be queried further.
 - **Closure under Restriction (**``**)**: Applying a restriction to a table results in a new table that maintains its relational properties.
@@ -433,7 +442,8 @@ Algebraic closure refers to the property that query operations in DataJoint alwa
 
 This property enables DataJoint to support composable and declarative data queries in a fully relational manner.
 
-## Semantic Join Rules
+## Semantic match
+For binary operators in becomes necessary to match rows in one 
 
 In binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), must relate rows in table `A` to rows in table `B`.
 
