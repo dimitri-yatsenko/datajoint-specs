@@ -398,22 +398,7 @@ Here:
 s3://my-bucket/subject123/session45/image1.tiff
 s3://my-bucket/subject124/session46/image2.tiff
 ```
-
-This results in structured key naming:
-
-The backend configuration allows selection of primary key attributes for data partitioning, guiding DataJoint to create subfolders for hierarchical data organization.
-
-For example, specifying the partitioning in datajoint.toml as:
-```toml
-# Configuration for data storage
-[data_storage]
-partition_pattern = "subject{subject_id}/session{session_id}"
-```
-In this configuration:
-* `[data_storage]`: Defines settings for data storage-related configurations.
-* `partition_pattern`: Specifies the partitioning scheme, where placeholders {subject_id} and {session_id} are dynamically replaced with actual values during data operations.
-
-This setup organizes data into subject/session subfolders, facilitating hierarchical navigation and browsing.
+This logical organization improves data navigation and retrieval while maintaining compatibility with object storage paradigms.
 
 ## File Operations
 The DataJoint client uses protocols such as [`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/), supporting various storage backends.
