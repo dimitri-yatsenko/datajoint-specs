@@ -95,104 +95,100 @@ A **data pipeline** supporting a scientific study is  a structured system for ma
 It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing*
 . In addition to handling **computational dependencies and job execution**, a pipeline may also include **graphical interfaces for data navigation, analysis, and collaboration**.
 
-## **Operational Components**  
+## **Operational Components**
 
 A fully functional DataJoint pipeline consists of the following core components:
 
-### **1. Dedicated Code Repository**  
-A **shared version-controlled code repository** (e.g., **GitHub, GitLab, Bitbucket**, or a self-hosted `git` instance) serves as the **central hub** for managing pipeline development and execution. It stores:  
-- **Pipeline definitions** – schemas, table structures, and computational dependencies.  
-- **Configuration settings** – database, storage, and execution parameters.  
-- **Access control policies** – permissions and security settings.  
-- **Containerized environments** – configurations for executing computations reproducibly.  
+### **1. Dedicated Code Repository**
+A **shared version-controlled code repository** (e.g., **GitHub, GitLab, Bitbucket**, or a self-hosted `git` instance) serves as the **central hub** for managing pipeline development and execution. It stores:
+- **Pipeline definitions** – schemas, table structures, and computational dependencies.
+- **Configuration settings** – database, storage, and execution parameters.
+- **Access control policies** – permissions and security settings.
+- **Containerized environments** – configurations for executing computations reproducibly.
 - **Quality Assurance** - unit tests, integration tests
-- **Automations** – deployment scripts, CI/CD pipelines, and operational workflows.  
+- **Automations** – deployment scripts, CI/CD pipelines, and operational workflows.
 
 Version control ensures **collaborative development, reproducibility, and historical tracking** of pipeline changes. Research teams are responsible for code management, including **reviews, merges, and updates**.
 
-### **2. Relational Database for Structured Data**  
-A **relational database** (e.g., **MySQL, PostgreSQL**) serves as the **core metadata store** for the pipeline, ensuring:  
-- **Structured tabular storage** – for experiment data, metadata, and results.  
-- **Foreign-key relationships** – enforcing **data integrity and traceability**.  
-- **Transactional support (ACID compliance)** – ensuring consistency in data updates.  
+### **2. Relational Database for Structured Data**
+A **relational database** (e.g., **MySQL, PostgreSQL**) serves as the **core metadata store** for the pipeline, ensuring:
+- **Structured tabular storage** – for experiment data, metadata, and results.
+- **Foreign-key relationships** – enforcing **data integrity and traceability**.
+- **Transactional support (ACID compliance)** – ensuring consistency in data updates.
 
-The **database acts as the authoritative source of truth**, defining dependencies, data provenance, and analysis results.  
+The **database acts as the authoritative source of truth**, defining dependencies, data provenance, and analysis results.
 
-Database administrators handle **access control**, ensuring data security.  
+Database administrators handle **access control**, ensuring data security.
 The **DataJoint Platform** implements **role-based access control (RBAC)** to manage permissions for research teams efficiently.
 
-### **3. Object Storage for Large Data Objects**  
-A **scalable storage backend** is required for managing **large scientific datasets** that are referenced in the relational database but stored externally.  
+### **3. Object Storage for Large Data Objects**
+A **scalable storage backend** is required for managing **large scientific datasets** that are referenced in the relational database but stored externally.
 
-Supported storage backends include:  
-- **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).  
-- **Cloud-based object storage** – (e.g., Amazon S3, Google Cloud Storage, Azure Blob, MinIO).  
-- **Hybrid solutions** – Combining local and cloud storage for flexibility.  
+Supported storage backends include:
+- **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).
+- **Cloud-based object storage** – (e.g., Amazon S3, Google Cloud Storage, Azure Blob, MinIO).
+- **Hybrid solutions** – Combining local and cloud storage for flexibility.
 
-Object storage enables **efficient handling of unstructured data** (e.g., images, neural recordings, time series) while maintaining **structured metadata** in the relational database.  
+Object storage enables **efficient handling of unstructured data** (e.g., images, neural recordings, time series) while maintaining **structured metadata** in the relational database.
 
 **Access control for stored objects is synchronized with database permissions**, ensuring parallel security enforcement. The **DataJoint Platform seamlessly integrates databases with object storage** to provide a unified experience.
 
-### **4. Job Orchestration for Automated Computations (Optional)**  
-For smaller, self-hosted projects, **computations may be executed manually** or through custom scripts. However, for **automated execution**, a **job orchestration system** can:  
-- **Schedule and execute computations** based on pipeline dependencies.  
-- **Ensure proper execution order** of dependent tasks.  
-- **Support distributed or parallel processing** for computational scalability.  
+### **4. Job Orchestration for Automated Computations (Optional)**
+For smaller, self-hosted projects, **computations may be executed manually** or through custom scripts. However, for **automated execution**, a **job orchestration system** can:
+- **Schedule and execute computations** based on pipeline dependencies.
+- **Ensure proper execution order** of dependent tasks.
+- **Support distributed or parallel processing** for computational scalability.
 
-#### **Orchestration Options**:  
-- **DataJoint Compute Service** – A fully integrated job execution system on the DataJoint Platform.  
-- **Self-managed custom solutions** – User-defined execution workflows.  
-- **Workflow automation tools** – Apache Airflow, Prefect, Dagster.  
-- **Distributed job schedulers** – Kubernetes, SLURM, AWS Batch.  
+#### **Orchestration Options**:
+- **DataJoint Compute Service** – A fully integrated job execution system on the DataJoint Platform.
+- **Self-managed custom solutions** – User-defined execution workflows.
+- **Workflow automation tools** – Apache Airflow, Prefect, Dagster.
+- **Distributed job schedulers** – Kubernetes, SLURM, AWS Batch.
 
 Automated job execution improves **auditability, observability, and traceability**, ensuring reproducible computational workflows.
 
-### **5. Web Interfaces for Interactive Data Exploration (Optional)**  
-Many self-hosted projects **do not require graphical interfaces** beyond basic scripting environments. However, for interactive data exploration, **web-based tools can enhance usability** by providing:  
-- **Data entry, visualization, and exploration** (e.g., dashboards).  
-- **Structured metadata querying and filtering**.  
-- **Collaboration tools** for managing shared datasets.  
-- **Pipeline monitoring and job execution status tracking**.  
+### **5. Web Interfaces for Interactive Data Exploration (Optional)**
+Many self-hosted projects **do not require graphical interfaces** beyond basic scripting environments. However, for interactive data exploration, **web-based tools can enhance usability** by providing:
+- **Data entry, visualization, and exploration** (e.g., dashboards).
+- **Structured metadata querying and filtering**.
+- **Collaboration tools** for managing shared datasets.
+- **Pipeline monitoring and job execution status tracking**.
 
-**Available Interfaces**:  
-- **Custom-built dashboards** – Using frameworks like **Streamlit, Dash, or Panel**.  
-- **Jupyter Notebooks** – Interactive scripting environments.  
-- **DataJoint Platform Web Tools** – Plotly Dash-based dashboards for data entry and visualization, and Jupyter Notebooks with configurable compute instances.  
+**Available Interfaces**:
+- **Custom-built dashboards** – Using frameworks like **Streamlit, Dash, or Panel**.
+- **Jupyter Notebooks** – Interactive scripting environments.
+- **DataJoint Platform Web Tools** – Plotly Dash-based dashboards for data entry and visualization, and Jupyter Notebooks with configurable compute instances.
 
-## **Pipeline ≡ Python Package**  
+## **Pipeline ≡ Python Package**
 
-A **DataJoint pipeline** is typically implemented as a **dedicated Python package**, where **modules correspond to database schemas**. This structure ensures that data, computations, and dependencies remain **organized, traceable, and reproducible**.  
+A **DataJoint pipeline** is typically implemented as a **dedicated Python package**, where **modules correspond to database schemas**. This structure ensures that data, computations, and dependencies remain **organized, traceable, and reproducible**.
 
-A **DataJoint pipeline follows a directed acyclic graph (DAG) structure**, where:  
+A **DataJoint pipeline follows a directed acyclic graph (DAG) structure**, where:
 
-- **Nodes** represent **Python modules** (database schemas).  
-- **Edges** represent **dependencies**, including:  
-  - **Python import dependencies** between modules.  
-  - **Referential dependencies** (foreign keys) between tables, defining data flow.  
+- **Nodes** represent **Python modules** (database schemas).
+- **Edges** represent **dependencies**, including:
+  - **Python import dependencies** between modules.
+  - **Referential dependencies** (foreign keys) between tables, defining data flow.
 
-![Pipeline Design](figures/pipeline-illustration.png)  
+![Pipeline Design](figures/pipeline-illustration.png)
 
-> **Cyclical dependencies are not allowed** – All referential constraints within a schema must also form a **DAG**, meaning that foreign keys cannot create circular dependencies.  
+> **Cyclical dependencies are not allowed** – All referential constraints within a schema must also form a **DAG**, meaning that foreign keys cannot create circular dependencies.
 
----
+## **Database Schema ≡ Python Module**
 
-## **Database Schema ≡ Python Module**  
+Each **database schema** in DataJoint corresponds to a **Python module**, serving as a **namespace** for organizing related tables. Maintaining a **one-to-one mapping** between database schemas and Python modules ensures modular, maintainable code.
 
-Each **database schema** in DataJoint corresponds to a **Python module**, serving as a **namespace** for organizing related tables. Maintaining a **one-to-one mapping** between database schemas and Python modules ensures modular, maintainable code.  
+![Schema Design](figures/schema-illustration.png)
 
-![Schema Design](figures/schema-illustration.png)  
-
-- **Schemas in the database** group related tables with shared dependencies.  
-- **Schemas in Python** are structured as **separate modules**, keeping the code modular and scalable.  
-- **Foreign keys within a schema must also form a DAG**, ensuring **a unidirectional flow of data dependencies**.  
+- **Schemas in the database** group related tables with shared dependencies.
+- **Schemas in Python** are structured as **separate modules**, keeping the code modular and scalable.
+- **Foreign keys within a schema must also form a DAG**, ensuring **a unidirectional flow of data dependencies**.
 
 Maintaining this structured mapping ensures that the **database and code remain in sync**, facilitating reproducibility and collaboration.
 
----
+## **Database Table ≡ Python Class**
 
-## **Database Table ≡ Python Class**  
-
-In DataJoint, **each table is represented as a Python class**, following a consistent naming convention:  
+In DataJoint, **each table is represented as a Python class**, following a consistent naming convention:
 
 | Python | Database |
 |---|---|
@@ -201,10 +197,10 @@ In DataJoint, **each table is represented as a Python class**, following a consi
 | **Fully Qualified Python Class Name** | `<module>.<ClassName>` |
 | **Fully Qualified Database Table Name** | `<schema_name>.<table_name>` |
 
-**Example:**  
-- **Python Class:** `scan.ScanLocation` ≡ **Database Table:** `scan.scan_location`  
+**Example:**
+- **Python Class:** `scan.ScanLocation` ≡ **Database Table:** `scan.scan_location`
 
-This **naming convention** ensures clarity, consistency, and seamless alignment between the **Python implementation** and the **underlying database schema**. 🚀  
+This **naming convention** ensures clarity, consistency, and seamless alignment between the **Python implementation** and the **underlying database schema**.
 
 ## Table Tiers
 
