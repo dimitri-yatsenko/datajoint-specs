@@ -1,8 +1,8 @@
 # DataJoint 2.0 Specifications
 ---
-# Introduction  
+# Introduction
 
-DataJoint extends the relational database model into a **computational database**, integrating data storage with computational workflows. Just as spreadsheets handle raw values alongside formulas, DataJoint manages datasets alongside computed results—supporting reproducible, structured, and scalable scientific data processing.
+DataJoint extends the relational database model into a **computational database**, integrating data storage with computational workflows. Just as spreadsheets handle raw values alongside formulas, DataJoint designates some tables to express computations and to store  manages datasets alongside computed results—supporting reproducible, structured, and scalable scientific data processing.
 
 A **computational database** often plays the role of a **scientific data pipeline**, explicitly defining the dependencies between data acquisition, transformation, and analysis steps. DataJoint provides built-in mechanisms to ensure **data integrity**, support **transactional operations (ACID compliance)**, and seamlessly integrate with scientific programming languages such as Python. It expands traditional relational capabilities to include handling of **complex scientific data types** (e.g., multidimensional arrays), embedding computations directly in the data model via **foreign-key dependencies**.
 
@@ -12,7 +12,7 @@ DataJoint clearly defines **how computations and data dependencies are structure
 
 By fusing the rigor of relational database design with native support for scientific data and computations, DataJoint empowers researchers to build reliable, scalable, and collaborative data workflows.
 
-## Key Objectives  
+## Key Objectives
 
 - **Relational foundation** — Built upon a rigorous relational database model.
 - **Data integrity** — Enforces constraints ensuring consistency, correctness, and validity.
@@ -22,7 +22,7 @@ By fusing the rigor of relational database design with native support for scient
 - **Embedded computation** — Explicitly integrates computations within the database structure.
 - **Extensibility** — Supports complex and custom data structures beyond standard relational types.
 
-## Terminology  
+## Terminology
 
 DataJoint adopts familiar terms from relational database theory and clearly defines their usage within this specification:
 
@@ -34,7 +34,7 @@ DataJoint adopts familiar terms from relational database theory and clearly defi
 | **Attribute** (**Column**/**Field**) | A named, typed element of a table. Always referenced by name, never by position. |
 | **Row** (**Record**/**Tuple**) | A single entry in a table with values corresponding to each attribute. Rows are uniquely identified by their **primary key**. |
 | **Query** | A function on stored data, expressed as a [**query expression**](#query-expressions), resulting in a new derived table. |
-| **Query Expression** | A formal definition of a query expressed with [query operators](#query-operators)  acting on input tables to define a new output table. 
+| **Query Expression** | A formal definition of a query expressed with [query operators](#query-operators)  acting on input tables to define a new output table.
 | **Fetch** | The execution of a query and transfer of results from server to client. |
 | **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, durable (ACID) unit. All operations succeed or fail together, with partial results invisible externally. |
 
@@ -61,39 +61,82 @@ In contrast, **DataJoint** focuses specifically on scientific data workflows, em
 Therefore, DataJoint complements lakehouse architectures but is tailored specifically for managing structured experimental data and computational pipelines in science.
 
 ---
-
 # Pipeline Design
 
+A **DataJoint pipeline** is a structured and reproducible **computational data pipeline**, designed to manage both raw and computed scientific data. A pipeline explicitly defines data dependencies, ensuring **data integrity, traceability, and efficient processing**.
+
 ## Project = Pipeline
-A DataJoint project implements a data pipeline.
 
-![Schema Design](figures/pipeline-illustration.png)
+A **DataJoint project** implements a data pipeline, consisting of three key components:
 
-## Module = Schema
+- **Python Package** – Defines the database design, including tables and computations, using the DataJoint API. The package is version-controlled via `git` for reproducibility.
+- **Relational Database** – Stores structured tabular data, supporting **transactions**, **queries**, and **computational dependencies**.
+- **File Store** – Manages large external data files via a **file system**, **object store**, or **data lakehouse** for [file management](#file-management).
 
-Tables are organized into schemas. Each schema represents a namespace in the database.
+A **DataJoint pipeline** is structured as a **directed acyclic graph (DAG)**, where nodes represent **schemas** (Python modules) and edges represent **dependencies** (foreign keys and module imports):
+
+![Pipeline Design](figures/pipeline-illustration.png)
+
+- **Nodes** in the graph correspond to **Python modules** and their associated database schemas. A **1:1 correspondence** between module names and schema names is recommended.
+- **Edges** in the graph represent **data dependencies**, which include:
+  - **Python import dependencies** between modules.
+  - **Referential dependencies (foreign keys)** between tables, defining how data flows through the pipeline.
+- **Cyclical dependencies are not allowed** – Referential constraints within each schema must also form a **DAG**, meaning that foreign keys must not create circular dependencies between tables.
+
+This structure ensures that data and computations are **organized, traceable, and reproducible** across the entire project.
+
+## Schemas = Modules
+
+DataJoint organizes tables into **schemas**, which act as **namespaces** in the database. Each schema corresponds to a **Python module**, maintaining a clear **one-to-one mapping** between the database structure and the software package design.
 
 ![Schema Design](figures/schema-illustration.png)
 
-Schema design is mirrored by the package design of in the scientific language with schemas mapping to modules and tables mapping to classes.
+- **Schemas in the database** define **logical groupings of tables** that share related data and dependencies.
+- **Schemas in Python** correspond to **separate modules**, ensuring modular and maintainable code.
+- A **strongly recommended practice** is maintaining a **one-to-one correspondence** between database schemas and Python modules, keeping **tables as classes** within their respective modules.
+- Within each schema, **foreign keys must also form a DAG**, ensuring **data dependencies flow in a single direction** without cycles.
 
-A one-to-one correspondence is strongly recommended between schemas in the databases and separate modules in the programming language.
+## Tables = Classes
 
-## Table Definition
-Each table definition specifies the table name, table tier, a set of attributes, and a primary key. A table definition may also include foreign keys and secondary indexes.
+In DataJoint, **tables are represented as Python classes**, and their names follow a consistent convention:
 
-## Table Name
-Tables are represented as classes in the programming language, whose names follow the CamelCase notation.
-The table class `module.ClassName` translates into the corresponding `schema.table_name`, where schema corresponds to module and table name corresponds to class name.
+- **Python class names** are written in **CamelCase**.
+- **Database table names** are written in **snake_case**.
+- The **fully qualified Python class name** follows the format: `<module>.<ClassName>`. The corresponding **fully qualified database table name** follows the format: `<schema_name>.<table_name>`
 
-## Table Tiers
-Each table is designated as one of four tiers:
-| Tier | Description |
-|---|---|
-|`lookup`| Data that are part of the schema definition rather than project data: parameters, general facts.|
-|`manual`| Data entered from external sources.|
-|`computed`| Data are automatically computed by accessing data upstream in the pipeline.|
-|`imported`| Data are automatically computed by accessing data upstream in the pipeline, but also accessing external data sources in the process.|
+Example:
+- Python class: `scan.ScanLocation`
+- Database table: `scan.scan_location`
+
+This naming convention ensures clarity and consistency between the **Python implementation** and the **underlying database schema**.
+
+### Table Definition
+
+Each table definition consists of:
+
+- **Table name** – Defined as a class in Python and translated to a database table name.
+- **Table tier** – Specifies the table's role in the pipeline.
+- **Primary key** – Defines the unique identifier for each row.
+- **Attributes** – Columns specifying the table’s data structure.
+- **Foreign keys** – Define dependencies on upstream tables.
+- **Indexes** – Optimize queries and enforce constraints.
+
+### Table Tiers
+
+Each table is assigned to one of **four tiers**, defining how data is populated and maintained. In diagrams and visualizations, **color codes** are used to distinguish these tiers:
+
+| Tier | Description | Color Code (in Diagrams) |
+|---|---|---|
+| `lookup` | Static reference data that is part of the schema definition (e.g., parameters, controlled vocabularies). | **Gray** |
+| `manual` | Data manually entered from external sources, typically by users. | **Green** |
+| `imported` | Data automatically ingested from external sources (e.g., raw data files, external databases). | **Blue** |
+| `computed` | Data generated from upstream tables through **automated computations**. | **Red** |
+
+> **Note:**
+> GitHub Markdown does not support colored text formatting, but these color codes are **used in diagrams** and can be applied in external documentation formats such as HTML, LaTeX, or GUI-based schema visualization tools.
+
+These tiers ensure **clear separation** between manually curated, automatically imported, and computed data, preserving **data integrity and provenance** across the pipeline.
+
 
 ## Attribute Definition
 The table definition defines a number of fields, each on a separate line in the following format:
