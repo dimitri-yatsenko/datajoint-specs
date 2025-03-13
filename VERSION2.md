@@ -12,11 +12,11 @@ DataJoint serves as a formal common language for defining **how data and computa
 
 By combining the rigor of relational databases with built-in support for scientific data and computations, **DataJoint empowers researchers to design, implement, and share reliable, scalable data workflows**.
 
-## **Open-source Development**
+## Open-Source Development
 This document specifies  the **DataJoint open-source framework**—a **free, Python-based library** that enables scientists to design, manage, and query relational data pipelines.
 It provides **tools for defining schemas, tracking dependencies, and integrating computations**, but requires users to set up and manage their own database, compute, and storage infrastructure.
 
-To help research teams operate their projects, [DataJoint Inc.](https://datajoint.com) markets its **DataJoint Platform** as a **fully managed solution** that builds on the open-source framework, offering **hosted databases, scalable object storage, automated computation, and web-based tools** for data exploration and collaboration.
+To help research teams operate their projects, [DataJoint Inc.](https://datajoint.com) markets its **Data Operations Platform for Scientific Research** building on the open-source framework, offering **hosted databases, scalable object storage, automated computation, and web-based tools** for data exploration and collaboration.
 The platform can be deployed **on-premise, in the cloud, or as a hybrid infrastructure**, providing **seamless scalability, reliability, and security** for large-scale scientific workflows.
 The design of the DataJoint Platform is proprietary and is offered as a commercial offering.
 
@@ -600,7 +600,7 @@ from a query expression is  produce tables that  in DataJoint always yield new t
 
 This property enables DataJoint to support composable and declarative data queries in a fully relational manner.
 
-## Semantic match
+## Semantic Match
 For binary operators in becomes necessary to match rows in one
 
 In binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), must relate rows in table `A` to rows in table `B`.
