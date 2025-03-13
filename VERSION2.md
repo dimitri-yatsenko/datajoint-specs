@@ -13,15 +13,16 @@ DataJoint serves as a formal common language for defining **how data and computa
 By combining the rigor of relational databases with built-in support for scientific data and computations, **DataJoint empowers researchers to design, implement, and share reliable, scalable data workflows**.
 
 ## Open-Source Development
-This document specifies  the **DataJoint open-source framework**—a **free, Python-based library** that enables scientists to design, manage, and query relational data pipelines.
-It provides **tools for defining schemas, tracking dependencies, and integrating computations**, but requires users to set up and manage their own database, compute, and storage infrastructure.
 
-To help research teams operate their projects, [DataJoint Inc.](https://datajoint.com) markets its **Data Operations Platform for Scientific Research** building on the open-source framework, offering **hosted databases, scalable object storage, automated computation, and web-based tools** for data exploration and collaboration.
-The platform can be deployed **on-premise, in the cloud, or as a hybrid infrastructure**, providing **seamless scalability, reliability, and security** for large-scale scientific workflows.
-The design of the DataJoint Platform is proprietary and is offered as a commercial offering.
+This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that empowers scientists to design, manage, and query relational data pipelines. It provides tools for **defining schemas, tracking dependencies, and integrating computations**, but users must manage their own **database, compute, and storage infrastructure**.
+
+For research teams seeking a fully managed solution, [DataJoint Inc.](https://datajoint.com) offers the **Data Operations Platform for Scientific Research**—a **turnkey infrastructure** built on the open-source framework.
+The platform provides **hosted databases, scalable object storage, automated computation, and web-based tools** for seamless data exploration and collaboration.
+
+The DataJoint Platform is **flexible** and can be deployed **on-premise, in the cloud, or as a hybrid infrastructure**, ensuring **scalability, reliability, and security** for large-scale scientific workflows.
+While the platform’s design is proprietary, researchers maintain full **ownership and control** over their data and pipeline code, meeting **data residency and licensing requirements**—whether running their own infrastructure or leveraging the DataJoint Platform.
 
 ## Key Objectives
-
 - **Relational foundation** — Built upon a rigorous relational database model.
 - **Data integrity** — Enforces constraints ensuring consistency, correctness, and validity.
 - **ACID transactions** — Supports atomic, consistent, isolated, and durable database operations.
