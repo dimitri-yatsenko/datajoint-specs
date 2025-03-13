@@ -398,7 +398,7 @@ The **organizational structure of stored objects is configurable**, allowing **l
 A DataJoint client is configured to access the storage backend associated with each database.
 For each insert and fetch operation, the client constructs the relative path for the file fields.
 The database entry for the file type stores metadata such as file extension, size, checksum, and tags.
-The hierarchical structure is configurable as part of the storage backend configuration.
+The structure is configurable as part of the storage backend configuration.
 
 ### **Example Structured Object Storage Pattern**
 
@@ -431,23 +431,6 @@ This structured naming approach allows:
 * Efficient indexing and retrieval using key-based lookups.
 * Cross-platform compatibility across file systems and cloud object stores.
 
-A typical pattern may be as follows:
-```bash
-📁 project_name/
-├── datajoint.toml
-├──📁 schema_name1/
-├──📁 schema_name2/
-├──📁 schema_name3/
-│  ├── schema.py
-│  ├── 📁 tables
-│  │   ├── table1.parquet
-│  │   ├── table2.parquet
-│  │   ...
-│  ├── 📁 fields
-│  │   ├── table1-field1/key3-value3.zarr
-│  │   ├── table1-field2/key3-value3.gif
-...  ...
-```
 This file hierarchy serves to store a complete copy of the tabular relational data in the `tables` subfolder and the contents of the file fields in the fields subfolder.
 The table name, field name, and primary key attributes form the path using a configurable pattern.
 Several options are available for partitioning this file repository based on the values of a specific subset of primary key attributes.```
