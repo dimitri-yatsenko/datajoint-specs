@@ -1,14 +1,14 @@
 # DataJoint 2.0 Specifications
 ---
-# Introduction  
+# Introduction
 
-DataJoint extends the **relational database model** into a **computational database**, where some tables store inputs or source data, while others define computations and store computed results. This approach enables **structured, scalable, and reproducible** scientific data processing.  
+DataJoint extends the **relational database model** into a **computational database**, where some tables store inputs or source data, while others define computations and store computed results. This approach enables **structured, scalable, and reproducible** scientific data processing.
 
-A **computational database** serves as a **scientific data pipeline**, explicitly defining dependencies between data acquisition, transformation, and analysis. DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with scientific programming languages such as **Python**. It also extends relational databases to handle **complex scientific data types** (e.g., multidimensional arrays) and embeds computations using **foreign-key dependencies**.  
+A **computational database** can serve as a **scientific data pipeline**, explicitly defining dependencies between data acquisition, transformation, and analysis. DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with scientific programming languages such as **Python**. It also extends relational databases to handle **complex scientific data types** (e.g., multidimensional arrays) and embeds computations using **foreign-key dependencies**.
 
-This document defines the **DataJoint 2.0 API**, a major upgrade focused on **scalability, extensibility, and interoperability**. A **new Python implementation** is planned for **2025**, incorporating modern best practices for usability, performance, and compatibility with scientific computing frameworks. The current [reference implementation](https://github.com/datajoint/datajoint-python) supports **MySQL** and **PostgreSQL** backends. While the API reflects Python conventions, it is designed for **adoption in other languages** with full interoperability.  
+This document defines the **DataJoint 2.0 API**, a major upgrade focused on **scalability, extensibility, and interoperability**. A **new Python implementation** is planned for **2025**, incorporating modern best practices for usability, performance, and compatibility with scientific computing frameworks. The current [reference implementation](https://github.com/datajoint/datajoint-python) supports **MySQL** and **PostgreSQL** backends. While the API reflects Python conventions, it is designed for **adoption in other languages** with full interoperability.
 
-DataJoint defines **how data and computations are structured**, but does not dictate how computational jobs are executed. It can be combined with external **workflow management systems** (e.g., Apache Airflow, Nextflow) for scheduling computations. Likewise, **graphical user interfaces and dashboards** can be integrated for interactive data exploration—though such integrations are outside the scope of this specification.  
+DataJoint serves as a formal common language for defining **how data and computations are structured**, but does not dictate how computational jobs are executed. It can be combined with external **workflow management systems** (e.g., Apache Airflow, Nextflow) for scheduling computations. Likewise, **graphical user interfaces and dashboards** can be integrated for interactive data exploration—though such integrations are outside the scope of this specification.
 
 By combining the rigor of relational databases with built-in support for scientific data and computations, **DataJoint empowers researchers to design, implement, and share reliable, scalable data workflows**.
 
@@ -28,17 +28,18 @@ DataJoint adopts familiar terms from relational database theory and clearly defi
 
 | Term | Definition |
 |---|---|
-| **Data Pipeline** | Also called a *DataJoint project*, *computational database*, or *workflow*. A structured organization of data and computations that includes a relational database (MySQL or PostgreSQL), a dedicated code repository (e.g., `git`), and hierarchical file storage. A pipeline serves as the **system of record** aggregating primary and computed data for collaborative scientific projects. |
+| **Data Pipeline** | Also called a *DataJoint project*, *computational database*, or *workflow*. A structured organization of data and computations that includes a relational database (MySQL or PostgreSQL), a dedicated code repository (e.g., `git`), and a file or object store. A pipeline serves as the **system of record** aggregating primary and computed data for collaborative scientific projects. |
 | **Schema** | (a) A collection of related table definitions and integrity constraints, and (b) a namespace organizing related tables. |
 | **Table** | The core relational data structure, either stored permanently (base table) or derived temporarily (query result). Tables have named and typed **columns (attributes)** and unordered **rows**. |
 | **Attribute** (**Column**/**Field**) | A named, typed element of a table. Always referenced by name, never by position. |
 | **Row** (**Record**/**Tuple**) | A single entry in a table with values corresponding to each attribute. Rows are uniquely identified by their **primary key**. |
+| **Primary key**| A set of attributes in a table that are designated to uniquely identify any row in that table.  |
 | **Query** | A function on stored data, expressed as a [**query expression**](#query-expressions), resulting in a new derived table. |
-| **Query Expression** | A formal definition of a query expressed with [query operators](#query-operators)  acting on input tables to define a new output table.
+| **Query Expression** | A formal definition of a query expressed with [**query operators**](#query-operators)  acting on input tables to define a new output table.
 | **Fetch** | The execution of a query and transfer of results from server to client. |
 | **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, durable (ACID) unit. All operations succeed or fail together, with partial results invisible externally. |
 
-## Frequently Asked Questions (FAQs)
+## Frequently Asked Questions
 
 ### Is DataJoint an ORM?
 
@@ -59,6 +60,23 @@ DataJoint and lakehouses share some similar goals—such as integrating structur
 In contrast, **DataJoint** focuses specifically on scientific data workflows, emphasizing rigorous **schema definitions**, explicit **computational dependencies**, and robust **data integrity**. While lakehouses offer flexible analytics on structured and unstructured data, DataJoint prioritizes precise data modeling, reproducibility, and computational traceability within structured scientific datasets.
 
 Therefore, DataJoint complements lakehouse architectures but is tailored specifically for managing structured experimental data and computational pipelines in science.
+
+### Does DataJoint require SQL knowledge?
+
+No, **DataJoint does not require SQL knowledge**, but understanding relational concepts can be helpful.
+
+DataJoint provides a **Python-based API** that abstracts SQL, allowing users to define schemas, insert data, and query tables without writing SQL. Instead of composing SQL queries, users interact with the database using **intuitive Python methods**.
+
+Examples comparing **SQL vs. DataJoint**
+| SQL | DataJoint-Python |
+|---|---|
+| `CREATE TABLE` | Define tables as Python classes |
+| `INSERT INTO` | `.insert()` method |
+| `SELECT * FROM ...` | `.fetch()`, `.proj()`, `.aggr()` |
+| `JOIN` | `table1 * table2` |
+| `WHERE ...` | `table & condition` |
+
+Since DataJoint uses relational database backends, all data can be accessed through SQL as well.
 
 ---
 # Pipeline Design
@@ -174,7 +192,7 @@ Example table with additional unique indexes:
 class Person(dj.Manual):
     definition = """
     # Table representing a person with unique identifiers
-    person_id        : int unsigned  # Unique person identifier
+    person_id        : uint32  # Unique person identifier
     ---
     first_name       : varchar(50)
     last_name        : varchar(50)
@@ -243,40 +261,64 @@ class ChemicalElement(dj.Lookup):
 ```
 
 ## Attribute Types
-Database supports a small set of basic types for column attributes for storing them.
-These types mask and supplant the data types supported natively by the relational backends ([postgres](https://www.postgresql.org/docs/current/datatype.html) and [mysql](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)] to focus on the needs of data science and experimental science.
-This spec sides with names that are more convenient for data scientists (e.g. `uint8` rather than SQL's `tinyint unsigned`)
 
+DataJoint supports a **small set of fundamental types** for storing attributes in database columns.
+These types **abstract and simplify** the underlying SQL data types provided by relational backends ([PostgreSQL](https://www.postgresql.org/docs/current/datatype.html) and [MySQL](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)) to align with the needs of **data science and experimental workflows**.
 
-Attributes can be declared with the following types:
+This specification **prioritizes intuitive type names** (e.g., `uint8` instead of SQL’s `tinyint unsigned`) to improve usability for **scientific applications**.
 
-| Category | Identifies  |  Comment |
+### **Supported Attribute Types**
+
+| Category | Type | Description |
 | --- | --- | --- |
-| **UUID** | `uuid` | universally unique identifiers as defined in RFC 4122. Defaults values are not supported. |
-| **Integers:** | `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64` ||
-| **Scientific** | `float32`, `float64` | `nan` is not supported by MySQL backend |
-| **Decimal** | `decimal(M,N)` ||
-| **Character strings** | `char(N)`, `varchar(N)` ||
-| **Enumeration** | `enum('value1', 'value2', 'value3')` ||
-| **Date** | `date` | in ISO 8601 standard. Special value `NOW` can be used as default |
-| **Time** | `timestamp`  |  Microsecond precision in UTC in ISO 8601 standard. Special value `NOW` can be used for default. |
-| **Binary large object** | `blob` |
-| **File or folder** | `file` | a file or folder [managed by DataJoint](#file-management).|
-| **Custom type** | `<adaptor_name>` | [type-adaptors](#type-adaptors) |
+| **UUID** | `uuid` | Universally unique identifier (RFC 4122). Default values are not supported. |
+| **Integers** | `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64` | Standard integer types. |
+| **Scientific** | `float32`, `float64` | Floating-point numbers. `NaN` is not supported in the MySQL backend. |
+| **Decimal** | `decimal(M,N)` | Fixed-point decimal with precision `M` and scale `N`. |
+| **Character Strings** | `char(N)`, `varchar(N)` | Fixed or variable-length character data. |
+| **Enumeration** | `enum('value1', 'value2', 'value3')` | A predefined set of allowed values. |
+| **Date** | `date` | ISO 8601 format. Special value `NOW` can be used as a default. |
+| **Time** | `timestamp` | Microsecond precision in UTC (ISO 8601). Special value `NOW` can be used as a default. |
+| **Binary Large Object (BLOB)** | `blob` | Stores large binary data inside the database. |
+| **External Object Reference** | `object` | A reference to an **external object** managed by DataJoint (e.g., a file or dataset stored in an object store or file system). |
+| **Custom Type** | `<adaptor_name>` | User-defined [type adaptors](#type-adaptors) for specialized data handling. |
 
-The types *binary large objects* (blobs) and files provide support for storing large scientific data.
-Type adaptors allow defining convenient operational interfaces for stored data objects.
+### **Blob vs. Object**
+| Type | Best For | Where Data is Stored |
+| --- | --- | --- |
+| `blob` | **Raw binary data stored inside the database** | **Database storage (e.g., MySQL, PostgreSQL BLOB columns)** |
+| `object` | **Externally stored files, datasets, or objects** | **File systems, object stores (S3, GCS, Azure Blob), or network storage (NFS, SMB)** |
+
 
 ## Type Adaptors
 
 ---
-# File Management
-In DataJoint tables, the `file` datatype enable *file-augmented schemas*, where structured data resides in a relational database, and large scientific data objects are stored externally.
-This integration of structured data with large data structures, such as multidimensional arrays, is a key advantage of DataJoint.
+# Object Storage
+DataJoint combines **relational databases** for structured metadata and **object stores** for large scientific datasets.
+The relational database ensures **data integrity, fast querying, and transactional consistency**, while object storage efficiently handles **high-volume, unstructured data** (e.g., images, arrays).
+This hybrid approach **scales seamlessly**, keeping metadata relational while allowing **flexible, distributed storage** for large data objects.
 
-Files are managed like other database attributes but are stored in a systematically organized hierarchical folder structure within a configurable file backend.
-They are created and accessed through standard operations and queries: `insert`, `delete`, and `fetch`.
-Data operations on files provide the same consistency and integrity guarantees as data stored in the database.
+
+## Object Management
+In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata resides in a relational database, while large scientific data objects are stored externally.
+This integration allows **structured tabular data** to reference **large, complex data structures** (e.g., multidimensional arrays, images, time series).
+
+Objects are managed similarly to other database attributes but are stored in a **configurable storage backend**, using a structured key-naming convention.
+They are created and accessed through standard **DataJoint operations**: `insert`, `delete`, and `fetch`.
+Operations on stored objects maintain the **same consistency and integrity guarantees** as data stored in the database.
+
+
+A DataJoint client is configured to access the **storage backend** associated with each database.
+For each **insert** and **fetch** operation, the client **constructs a structured key** for object fields.
+The corresponding **database entry** stores metadata such as:
+- **Object key (structured reference to the stored object)**
+- **File format/extension**
+- **Size**
+- **Checksum (for integrity verification)**
+- **Tags (for metadata indexing and lookup)**
+
+The **organizational structure of stored objects is configurable**, allowing **logical partitioning** based on primary key attributes.
+
 
 ## Storage Backend Configuration
 A DataJoint client is configured to access the storage backend associated with each database.
@@ -284,10 +326,41 @@ For each insert and fetch operation, the client constructs the relative path for
 The database entry for the file type stores metadata such as file extension, size, checksum, and tags.
 The hierarchical structure is configurable as part of the storage backend configuration.
 
+### **Example Structured Object Storage Pattern**
+
+A typical storage structure follows a **structured key-naming convention**, maintaining logical organization:
+
+```bash
+📁 project_name/
+├── datajoint.toml
+├──📁 schema_name1/
+├──📁 schema_name2/
+├──📁 schema_name3/
+│  ├── schema.py
+│  ├── 📁 tables
+│  │   ├── table1/key1-value1.parquet
+│  │   ├── table2/key2-value2.parquet
+│  │   ...
+│  ├── 📁 objects
+│  │   ├── table1-field1/key3-value3.zarr
+│  │   ├── table1-field2/key3-value3.gif
+...  ...
+```
+When using object storage, the corresponding object keys might be:
+```
+s3://project_name/schema_name3/objects/table1/key1-value1.parquet
+s3://project_name/schema_name3/fields/table1-field1/key3-value3.zarr
+```
+
+This structured naming approach allows:
+* Scalable organization (even in flat object storage systems).
+* Efficient indexing and retrieval using key-based lookups.
+* Cross-platform compatibility across file systems and cloud object stores.
+
 A typical pattern may be as follows:
 ```bash
 📁 project_name/
-├── datajoint.toml <or> datajoint.yaml
+├── datajoint.toml
 ├──📁 schema_name1/
 ├──📁 schema_name2/
 ├──📁 schema_name3/
@@ -309,6 +382,25 @@ The `datajoint.toml` configuration file is essential for setting up a DataJoint 
 It defines the repository's organization, and key information within this file should remain unchanged after data population to avoid issues with existing data.
 
 ## Partitioning
+The storage backend configuration supports logical partitioning, allowing DataJoint to organize stored objects using a structured key pattern.
+For example, configuring partitioning in datajoint.toml:
+```
+# Configuration for object storage
+[object_storage]
+partition_pattern = "subject{subject_id}/session{session_id}"
+```
+
+Here:
+* `[object_storage]` defines settings for storage backend configuration.
+* `partition_pattern` dynamically replaces placeholders `({subject_id}, {session_id})` with actual values during object storage operations.
+
+```
+s3://my-bucket/subject123/session45/image1.tiff
+s3://my-bucket/subject124/session46/image2.tiff
+```
+
+This results in structured key naming:
+
 The backend configuration allows selection of primary key attributes for data partitioning, guiding DataJoint to create subfolders for hierarchical data organization.
 
 For example, specifying the partitioning in datajoint.toml as:
