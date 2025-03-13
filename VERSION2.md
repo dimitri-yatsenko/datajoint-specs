@@ -110,18 +110,7 @@ Example:
 
 This naming convention ensures clarity and consistency between the **Python implementation** and the **underlying database schema**.
 
-### Table Definition
-
-Each table definition consists of:
-
-- **Table name** – Defined as a class in Python and translated to a database table name.
-- **Table tier** – Specifies the table's role in the pipeline.
-- **Primary key** – Defines the unique identifier for each row.
-- **Attributes** – Columns specifying the table’s data structure.
-- **Foreign keys** – Define dependencies on upstream tables.
-- **Indexes** – Optimize queries and enforce constraints.
-
-### Table Tiers
+## Table Tiers
 
 Each table is assigned to one of **four tiers**, defining how data is populated and maintained. In diagrams and visualizations, **color codes** are used to distinguish these tiers:
 
@@ -136,6 +125,18 @@ Each table is assigned to one of **four tiers**, defining how data is populated 
 > GitHub Markdown does not support colored text formatting, but these color codes are **used in diagrams** and can be applied in external documentation formats such as HTML, LaTeX, or GUI-based schema visualization tools.
 
 These tiers ensure **clear separation** between manually curated, automatically imported, and computed data, preserving **data integrity and provenance** across the pipeline.
+
+
+# Table Definition
+
+Each table definition consists of:
+
+- **Table name** – Defined as a class in Python and translated to a database table name.
+- **Table tier** – Specifies the table's role in the pipeline.
+- **Primary key** – Defines the unique identifier for each row.
+- **Attributes** – Columns specifying the table’s data structure.
+- **Foreign keys** – Define dependencies on upstream tables.
+- **Indexes** – Optimize queries and enforce constraints.
 
 
 ## Attribute Definition
@@ -173,7 +174,7 @@ Example table with additional unique indexes:
 class Person(dj.Manual):
     definition = """
     # Table representing a person with unique identifiers
-    person_id        : int unsigned auto_increment  # Unique person identifier
+    person_id        : int unsigned  # Unique person identifier
     ---
     first_name       : varchar(50)
     last_name        : varchar(50)
@@ -187,7 +188,7 @@ class Person(dj.Manual):
     unique index (email)
     """
 ```
-This definition allows fast searches by `last_name`, `last_name`-`first_name`, as well as by other attributes with indices.
+This definition allows fast searches by `last_name`, `(last_name, first_name)`, as well as by other attributes with indices.
 Note that a unique index on a nullable field does not prevent multiple rows with `null` in the unique field.
 
 
