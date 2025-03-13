@@ -62,7 +62,7 @@ Thus, DataJoint can be considered an **ORM specialized for scientific databases*
 
 Not exactly. DataJoint provides robust capabilities for embedding computations within a relational database structure, managing derived data, and tracking explicit data dependencies. However, DataJoint itself does not handle scheduling, distributed execution, or orchestration of parallel computational tasks, which are typical roles of workflow management systems such as Apache Airflow or Nextflow. Instead, DataJoint complements these systems, formalizing data dependencies so that external workflow schedulers can effectively manage computational tasks.
 
-### Is DataJoint similar to a Lakehouse?
+### Is DataJoint a Lakehouse?
 
 DataJoint and lakehouses share some similar goals—such as integrating structured data management with scalable storage and computational capabilities. However, a **lakehouse** typically merges the flexibility of **data lakes** (handling raw, semi-structured data at scale) with the structured schemas and transactional guarantees of traditional databases.
 
@@ -91,11 +91,63 @@ Since DataJoint uses relational database backends, all data can be accessed thro
 
 # Pipeline Design
 
+A **data pipeline** supporting a scientific study is  a structured system for managing **scientific data, dependencies, computations, and execution workflows**.
+It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing*
+. In addition to handling **computational dependencies and job execution**, a pipeline may also include **graphical interfaces for data navigation, analysis, and collaboration**.
 
-A **DataJoint pipeline** is a structured and reproducible **computational data pipeline**, designed to manage both raw and computed scientific data. A pipeline explicitly defines data dependencies, ensuring **data integrity, traceability, and efficient processing**.
-A data pipeline manages the structured data  and computational code for all data transformations.
+## **Operational Components**  
 
-## Project = Pipeline
+A fully functional DataJoint pipeline requires the following core components:
+
+### 1. Dedicated Code Repository
+A **shared version-controlled code repository** (e.g., **GitHub, GitLab, or Bitbucket**) stores:  
+- Organized as a **Python Package** managed by the research team.
+- **Pipeline definitions** (schemas, table definitions, computational dependencies).  
+- **Configuration settings** for database, storage, and job execution.  
+- **Access control policies** and environment settings.  
+
+Version control ensures **collaborative development, reproducibility, and historical tracking** of pipeline changes.
+
+### 2. Relational Database for Structured Data
+A **dedicated relational database** (e.g., **MySQL, PostgreSQL**) serves as the **pipeline's core metadata store**, managing:  
+- **Structured tabular data** for experiments, metadata, and results.  
+- **Foreign-key relationships** to enforce **data integrity and traceability**.  
+- **Transaction support (ACID compliance)** for consistency in updates.  
+
+The relational database acts as the **source of truth** for **scientific data pipelines**, ensuring that **dependencies, provenance, and analysis results** remain well-defined.
+
+### 3. Object Storage for Large Data Objects  
+A **scalable storage backend** manages **large data objects** associated with structured metadata in the relational database. This can be:  
+- **Local file storage** (e.g., POSIX, NFS, SMB).  
+- **Cloud-based object stores** (e.g., Amazon S3, Google Cloud Storage, Azure Blob Storage, MinIO).  
+- **Hybrid storage solutions** combining local and cloud storage.  
+
+Object storage ensures **efficient handling of large-scale, unstructured scientific datasets** (e.g., images, time series, neural recordings) while keeping metadata relational.
+
+### 4. Job Orchestration for Automated Computations  
+A **job orchestration system** is required for managing **automated computations** based on defined dependencies. This system:  
+- **Schedules and executes jobs** when new data is available.  
+- Ensures **computational dependencies** are resolved in order.  
+- Supports **distributed or parallel processing**.  
+
+Common orchestration tools include:  
+- **DataJoint compute service** for integrated execution on the DataJoint platform. 
+- **self-managed custom solutions**
+- **Apache Airflow, Prefect, Dagster** (workflow automation).  
+- **Kubernetes, SLURM, AWS Batch** (distributed job execution).  
+
+This ensures that **derived data is computed automatically**, reducing manual intervention, and supporting auditability, observability, traceability.
+
+### 5. Web Interfaces for Interactive Data Exploration
+Web-based graphical interfaces allow **users to interact with the pipeline**, providing:  
+- **Data exploration and visualization tools** (e.g., dashboards).  
+- **Querying and filtering interfaces** for structured metadata.  
+- **Collaboration tools** for teams managing shared datasets.  
+- **Pipeline monitoring and job status tracking**.  
+
+Interfaces can range from **custom-built dashboards** to **integrations with Jupyter Notebooks, Streamlit, Dashboards, or web-based DataJoint tools**.
+
+## Project ≡ Pipeline
 
 A **DataJoint project** implements a data pipeline, consisting of three key components:
 
@@ -115,7 +167,7 @@ A **DataJoint pipeline** is structured as a **directed acyclic graph (DAG)**, wh
 
 This structure ensures that data and computations are **organized, traceable, and reproducible** across the entire project.
 
-## Schemas = Modules
+## Database Schema ≡ Python Module
 
 DataJoint organizes tables into **schemas**, which act as **namespaces** in the database. Each schema corresponds to a **Python module**, maintaining a clear **one-to-one mapping** between the database structure and the software package design.
 
@@ -126,7 +178,7 @@ DataJoint organizes tables into **schemas**, which act as **namespaces** in the 
 - A **strongly recommended practice** is maintaining a **one-to-one correspondence** between database schemas and Python modules, keeping **tables as classes** within their respective modules.
 - Within each schema, **foreign keys must also form a DAG**, ensuring **data dependencies flow in a single direction** without cycles.
 
-## Tables = Classes
+## DataBbse Table ≡ Python Class
 
 In DataJoint, **tables are represented as Python classes**, and their names follow a consistent convention:
 
