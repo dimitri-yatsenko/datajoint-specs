@@ -26,13 +26,9 @@ By adhering to the **DataJoint Specs**, users and developers can:
 **DataJoint extends the relational database model into a computational database**, where some tables store **raw inputs**, while others define **computations and store computed results**.
 This structure enables **scalable, reproducible, and structured** scientific data processing.  
 
-A **computational database** serves as a **scientific data pipeline**, explicitly defining dependencies between **data acquisition, transformation, and analysis**.
+A **computational database** can serve as a **scientific data pipeline**, explicitly defining dependencies between **data acquisition, transformation, and analysis**.
 DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with **Python**.It also extends relational databases to manage **complex scientific data types** (e.g., multidimensional arrays) and embeds computations via **foreign-key dependencies**.  
 
-This document defines the **DataJoint 2.0 API**, a major upgrade emphasizing **scalability, extensibility, and interoperability**.
-A **new Python implementation** is planned for **2025**, incorporating modern best practices for **usability, performance, and compatibility** with scientific computing frameworks.
-The current [reference implementation](https://github.com/datajoint/datajoint-python) supports **MySQL** and **PostgreSQL** backends.
-While the API reflects **Python conventions**, it is designed for **adoption in other languages** with full interoperability.  
 
 DataJoint **standardizes how data and computations are structured** but does **not dictate computational execution**. It can integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution. Additionally, **graphical interfaces and dashboards** can be incorporated for interactive data exploration—though such integrations are beyond the scope of this specification.  
 
