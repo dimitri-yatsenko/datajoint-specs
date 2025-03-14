@@ -26,8 +26,8 @@ DataJoint Specs evolve **independently** from **DataJoint implementations**
 
 Each implementation **aligns with a specific spec version**, ensuring compliance while allowing for **gradual adoption of new features**.  
 
-Each implementation release may claim which Specs it supports. For example: 
->```markdown
+Each implementation release may claim which Specs verrsion it supports. For example: 
+```
 # DataJoint Python v1.2.0 - Supports Spec v2.2
 - Implements new storage backend integration (DSEP-005).
 - Enhances metadata schema for computed tables.

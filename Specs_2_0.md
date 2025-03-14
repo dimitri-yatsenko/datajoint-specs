@@ -2,8 +2,10 @@
 
 * Status: [DRAFT]
 * Accepted:  2025-04-01 (projected)
-* Authors: [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
-* Impelements DSEPs: None
+* Authors: 
+  * [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
+* Impelements DSEPs: 
+  * None
 
 This is the first DataJoint Specifications. We start with version 2.0 to stay ahead of existing implementations, althought implementation versions are independent of the specs versions.
 
