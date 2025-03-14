@@ -37,16 +37,19 @@ By combining the rigor of **relational databases** with **built-in computational
 
 This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that enables scientists to design, manage, and query relational data pipelines. It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
 
+Setting up a fully operational scientific pipeline requires configuring **databases, object storage, compute infrastructure, and workflow automation**.
+
 While the open-source framework defines **computational data pipelines**, it does **not orchestrate computations or schedule jobs**. Users may:
 - Implement their own orchestration.
 - Integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution.
+- Use DataJoint's platform for a fully managed service.
 
-## DataJoint Platform
-
-Setting up a fully operational scientific pipeline requires configuring **databases, object storage, compute infrastructure, and workflow automation**.
 Additionally, pipeline functionality can be **enhanced** with:
 - **Graphical interfaces and dashboards** for interactive data exploration, analysis, and visualization.
 - **Integrations with external information systems**, such as **electronic lab notebooks (ELNs), LIMS, EMRs, instruments, and data acquisition systems**.
+
+
+## DataJoint Platform
 
 For research teams seeking a **fully managed solution**, [DataJoint Inc.](https://datajoint.com) offers its **Data Operations Platform for Scientific Research**—a **turnkey infrastructure** built around the open-source framework.
 
