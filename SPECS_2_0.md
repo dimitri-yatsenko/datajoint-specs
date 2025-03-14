@@ -29,14 +29,19 @@ This structure enables **scalable, reproducible, and structured** scientific dat
 A **computational database** can serve as a **scientific data pipeline**, explicitly defining dependencies between **data acquisition, transformation, and analysis**.
 DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with **Python**.It also extends relational databases to manage **complex scientific data types** (e.g., multidimensional arrays) and embeds computations via **foreign-key dependencies**.  
 
-
-DataJoint **standardizes how data and computations are structured** but does **not dictate computational execution**. It can integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution. Additionally, **graphical interfaces and dashboards** can be incorporated for interactive data exploration—though such integrations are beyond the scope of this specification.  
-
 By combining the rigor of **relational databases** with **built-in computational workflows**, DataJoint enables researchers to **design, implement, and share scalable, reproducible data pipelines**.
 
 ## Open-Source Development
 
-This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that empowers scientists to design, manage, and query relational data pipelines. It provides tools for **defining schemas, tracking dependencies, and integrating computations**, but users must manage their own **database, compute, and storage infrastructure**.
+This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that empowers scientists to design, manage, and query relational data pipelines.
+It provides tools for **defining schemas, tracking dependencies, and integrating computations**, but users must manage their own **database, compute, and storage infrastructure**.
+
+## DataJoint Platform
+DataJoint **standardizes how data and computations are structured** but does **not dictate computational execution**.
+
+Users may implement their own automated computations.  They may can integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution.
+
+Additionally, **graphical interfaces and dashboards** can be incorporated for interactive data exploration—though such integrations are beyond the scope of this specification.  
 
 For research teams seeking a fully managed solution, [DataJoint Inc.](https://datajoint.com) offers the **Data Operations Platform for Scientific Research**—a **turnkey infrastructure** built on the open-source framework.
 The platform provides **hosted databases, scalable object storage, automated computation, and web-based tools** for seamless data exploration and collaboration.
