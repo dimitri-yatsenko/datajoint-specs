@@ -201,9 +201,7 @@ Many research projects benefit from integrating DataJoint pipelines with:
 - **Jupyter Notebooks** – Interactive scripting environments.
 - **DataJoint Platform Web Tools** – Plotly Dash-based dashboards for data entry and visualization, and Jupyter Notebooks with configurable compute instances.
 
-
-## **Conclusion**
-A DataJoint pipeline **integrates structured metadata, scalable storage, automated computation, and interactive tools** to ensure **efficient, reproducible, and collaborative** research workflows. Whether self-hosted or deployed on the **DataJoint Platform**, this architecture provides **flexibility, security, and seamless scalability**. 🚀
+----
 
 
 ## **Pipeline ≡ Python Package**
