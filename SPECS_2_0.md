@@ -3,51 +3,64 @@
 * Version: 2.0
 * Status: [DRAFT]
 * Accepted:  2025-04-01 (projected)
-* Authors: 
+* Authors:
   * [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
-* Impelements DSEPs: 
+* Impelements DSEPs:
   * None
-* Description: First release of DataJoint Specss. We start with version 2.0 to stay ahead of current implementations, although implementation versions are independent of the specs versions.
+* Description: First release of DataJoint Specs. Versioning starts with 2.0 to stay ahead of current implementations, although implementation versions are independent of the specs versions.
 
 ---
 # Introduction
 
 ## Purpose of DataJoint Specs
 
-The **DataJoint Specs** establish the **standards, conventions, and best practices** for designing and managing **DataJoint pipelines**. These specifications ensure that all DataJoint implementations remain **consistent, scalable, and interoperable** across different scientific workflows and computing environments.  
+The **DataJoint Specs** define the **standards, conventions, and best practices** for designing and managing **DataJoint pipelines**. These specifications ensure that all DataJoint implementations remain **consistent, scalable, and interoperable** across various scientific workflows and computing environments.
 
-By adhering to the **DataJoint Specs**, users and developers can:  
-- Maintain **structured, reproducible data pipelines**.  
-- Ensure **compatibility across different DataJoint implementations**.  
-- Adopt **best practices** for schema design, data integrity, and computational workflows.
-- Provide a **foundation for future enhancements** while maintaining backward compatibility.
+By following the **DataJoint Specs**, users and developers can:
+- Maintain **structured, reproducible data pipelines**.
+- Ensure **compatibility across different DataJoint implementations**.
+- Adopt **best practices** for **schema design, data integrity, and computational workflows**.
+- Provide a **foundation for future enhancements** while preserving backward compatibility.
+
+---
 
 ## Purpose of DataJoint
-**DataJoint extends the relational database model into a computational database**, where some tables store **raw inputs**, while others define **computations and store computed results**.
-This structure enables **scalable, reproducible, and structured** scientific data processing.  
 
-A **computational database** can serve as a **scientific data pipeline**, explicitly defining dependencies between **data acquisition, transformation, and analysis**.
-DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with **Python**.It also extends relational databases to manage **complex scientific data types** (e.g., multidimensional arrays) and embeds computations via **foreign-key dependencies**.  
+**DataJoint extends the relational database model into a computational database**, where some tables store **raw inputs**, while others define **computations and store computed results**. This approach enables **structured, scalable, and reproducible** scientific data processing.
 
-By combining the rigor of **relational databases** with **built-in computational workflows**, DataJoint enables researchers to **design, implement, and share scalable, reproducible data pipelines**.
+A **computational database** serves as a **scientific data pipeline**, explicitly defining dependencies between **data acquisition, transformation, and analysis**. DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with **Python**. It also extends relational databases to manage **complex scientific data types** (e.g., multidimensional arrays) and embeds computations via **foreign-key dependencies**.
+
+By combining the rigor of **relational databases** with **built-in computational workflows**, DataJoint empowers researchers to **design, implement, and share scalable, reproducible data pipelines**.
+
 
 ## Open-Source Development
 
-This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that empowers scientists to design, manage, and query relational data pipelines.
-It provides tools for **defining schemas, tracking dependencies, and integrating computations**, but users must manage their own **database, compute, and storage infrastructure**.
+This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that enables scientists to design, manage, and query relational data pipelines. It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
+
+While the open-source framework defines **computational data pipelines**, it does **not orchestrate computations or schedule jobs**. Users may:
+- Implement their own orchestration.
+- Integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution.
 
 ## DataJoint Platform
-DataJoint **standardizes how data and computations are structured** but does **not dictate computational execution**.
 
-Users may implement their own automated computations.  They may can integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution.
+Setting up a fully operational scientific pipeline requires configuring **databases, object storage, compute infrastructure, and workflow automation**.
+Additionally, pipeline functionality can be **enhanced** with:
+- **Graphical interfaces and dashboards** for interactive data exploration, analysis, and visualization.
+- **Integrations with external information systems**, such as **electronic lab notebooks (ELNs), LIMS, EMRs, instruments, and data acquisition systems**.
 
-Additionally, **graphical interfaces and dashboards** can be incorporated for interactive data exploration—though such integrations are beyond the scope of this specification.  
+For research teams seeking a **fully managed solution**, [DataJoint Inc.](https://datajoint.com) offers its **Data Operations Platform for Scientific Research**—a **turnkey infrastructure** built around the open-source framework.
 
-For research teams seeking a fully managed solution, [DataJoint Inc.](https://datajoint.com) offers the **Data Operations Platform for Scientific Research**—a **turnkey infrastructure** built on the open-source framework.
-The platform provides **hosted databases, scalable object storage, automated computation, and web-based tools** for seamless data exploration and collaboration.
+The platform provides:
+- **Hosted databases**
+- **Scalable object storage**
+- **Automated computation**
+- **Web-based tools** for seamless data exploration and collaboration
+- **Security and compliance**
 
-The DataJoint Platform is **flexible** and can be deployed **on-premise, in the cloud, or as a hybrid infrastructure**, ensuring **scalability, reliability, and security** for large-scale scientific workflows.
-While the platform’s design is proprietary, researchers maintain full **ownership and control** over their data and pipeline code, meeting **data residency and licensing requirements**—whether running their own infrastructure or leveraging the DataJoint Platform.
+The **DataJoint Platform** is **flexible** and can be deployed **on-premise, in the cloud, or in a hybrid infrastructure**, ensuring **scalability, reliability, and security** for large-scale scientific workflows.
+While the platform’s design is proprietary, researchers maintain **full ownership and control** over their data and pipeline code, ensuring compliance with **data residency and licensing requirements**, whether running their own infrastructure or leveraging the DataJoint Platform.
+
+---
 
 ## Key Objectives
 - **Relational foundation** — Built upon a rigorous relational database model.

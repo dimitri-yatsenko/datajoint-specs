@@ -1,7 +1,7 @@
 # DSEP-XXX: [Title]
+* Status: [Draft | Under Review | Accepted | Rejected | Withdrawn]
 * Authors: 
   * [Name(s), GitHub Handle(s)]
-* Status:* [Draft | Under Review | Accepted | Rejected | Withdrawn]
 * Created: [Date]
 * Last Updated: [Date]
 
