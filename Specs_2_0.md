@@ -1,13 +1,13 @@
-# DataJoint Specs v2.0
+# DataJoint Specs
 
+* Version: 2.0
 * Status: [DRAFT]
 * Accepted:  2025-04-01 (projected)
 * Authors: 
   * [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
 * Impelements DSEPs: 
   * None
-
-This is the first DataJoint Specifications. We start with version 2.0 to stay ahead of existing implementations, althought implementation versions are independent of the specs versions.
+* Description: First release of DataJoint Specss. We start with version 2.0 to stay ahead of current implementations, although implementation versions are independent of the specs versions.
 
 ---
 # Introduction
@@ -179,7 +179,7 @@ For **automated execution**, a **job orchestration system** can:
 Orchestration enables **auditability, observability, and traceability**, ensuring **reproducibility and compliance** with scientific standards. It also supports **integration with HPC clusters, private clouds, and other computational infrastructures**.
 
 
-###5. Web Interfaces, APIs, and System Integrations (Optional)
+### 5. Web Interfaces, APIs, and System Integrations (Optional)
 Web interfaces and APIs facilitate **interactive data exploration, structured data entry, and integrations with external systems**.
 
 **System Integrations:**
@@ -225,7 +225,7 @@ Each **database schema** in DataJoint corresponds to a **Python module**, servin
 
 ![Schema Design](figures/schema-illustration.png)
 
-- **Schemas in the database** group related tables with shared dependencies.
+- **Schemas in the database** represent a group of logically related tables.
 - **Schemas in Python** are structured as **separate modules**, keeping the code modular and scalable.
 - **Foreign keys within a schema must also form a DAG**, ensuring **a unidirectional flow of data dependencies**.
 
