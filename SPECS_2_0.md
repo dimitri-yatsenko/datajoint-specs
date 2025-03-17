@@ -444,7 +444,7 @@ In DataJoint tables, the `object` datatype enables **object-augmented schemas**,
 - **Stored using a structured key-naming convention**.
 - **Tracked in the database with metadata** such as format, size, checksum, and version.
 
-## The `dj.Object` Interface
+### The `dj.Object` Interface
 
 To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:
 
