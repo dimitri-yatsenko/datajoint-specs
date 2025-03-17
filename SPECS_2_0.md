@@ -409,7 +409,7 @@ These types **abstract and simplify** the underlying SQL data types provided by 
 
 This specification **prioritizes intuitive type names** (e.g., `uint8` instead of SQL’s `tinyint unsigned`) to improve usability for **scientific applications**.
 
-### **Supported Attribute Types**
+### **Core Attribute Types**
 
 | Category | Type | Description |
 | --- | --- | --- |
@@ -422,7 +422,7 @@ This specification **prioritizes intuitive type names** (e.g., `uint8` instead o
 | **Date** | `date` | ISO 8601 format. Special value `NOW` can be used as a default. |
 | **Time** | `timestamp` | Microsecond precision in UTC (ISO 8601). Special value `NOW` can be used as a default. |
 | **Binary Large Object (BLOB)** | `blob` | Stores large binary data inside the database. |
-| **External Object Reference** | `object` | A reference to an **external object** managed by DataJoint (e.g., a file or dataset stored in an object store or file system). |
+| **Object Reference** | `object` | A reference to an **external object** managed by DataJoint (e.g., a file or dataset stored in an object store or file system). |
 | **Custom Type** | `<adaptor_name>` | User-defined [type adaptors](#type-adaptors) for specialized data handling. |
 
 ### **Blob vs. Object**
@@ -432,37 +432,102 @@ This specification **prioritizes intuitive type names** (e.g., `uint8` instead o
 | `object` | **Externally stored files, datasets, or objects** | **File systems, object stores (S3, GCS, Azure Blob), or network storage (NFS, SMB)** |
 
 
-## Type Adaptors
-A type adaptor is an object of 
+### Custom Types
+Custom types allow DataJoint to **seamlessly integrate and manage diverse data types** as if they were stored directly in a database field.
+They handle the **conversion** between **complex scientific objects** (e.g. `networkx.Graph`, `zarr`, `png`) and **core attribute types**, ensuring compatibility with relational storage.
+DataJoint projects can define and maintain a collection of type adaptors that serve their aims.
+
+What Custom Types do:
+- **Enable flexible data handling** while maintaining database integrity.
+- **Convert non-standard data types** into a format storable in DataJoint tables.
+- **Retrieve stored data and reconstruct it** into its original form for use in computations.
+
+Key Benefts of Custom Types:
+✅ Extend DataJoint's capabilities to support scientific data types.
+✅ Ensure compatibility with relational storage while enabling flexible data handling.
+✅ Simplify retrieval and conversion of complex objects.
+✅ Maintain backward compatibility with legacy data structures.
+
+Type adaptors must be **registered and available at the time of schema declaration** and maintained continually for data operations to ensure compatibility.
+Generally, revisions of adaptors must maintain backward compatibility.
+They are implemented as classes subclassing from `dj.CustomType` and must implement the following methods:
+1. `type_name` (property) → str -- returns the name by which the
+1. `stored_type` (property str)  -- returns the **underlying storage type** (e.g. `blob`, `file`, or another `<adoptor_name>`)
+2. `put(self, key, user_object) -> stored_object`
+3. `get(self, key, stored_object) -> user_object`
+
+The custom type is activated by registering it with the DataJoint client
+
+```python
+dj.register_type(CustomType)
+```
+
+
+**Example Type Adaptors**
+
+| **`type_name`** | **`stored_type`** | **Purpose** |
+|------------|--------------|-------------|
+| `<dj_blob>` | `blob` | Converts arbitrary Python structures into a `blob`, ensuring backward compatibility. |
+| `<zarr2p>` | `file` | Converts two-photon imaging data into compressed Zarr objects. |
+| `<dj_npy>` | `file` | Serializes Python objects into Numpy-compatible files. |
+
+
+Custom types typically implemented in separate modules and loaded as [Python plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/)
+
+Example type adaptors:
+
+- `<djblob>` - (core type: `blob`), converts an arbitrary python structure into a blob type, backward-copmatible with legacy blobs. Old blobs become
+- `<zarr2p>` - (core type: `file`), converts two-photon movies into compressed zarr objects
+- `<numpy-npy>` - (core type: `file`), converts numpy array into a npy file :w
+- `<numpy-zarr>` - (core type: `file`), converts numpy array into a zarr object
+
+### Using a CustomType in a DataJoint Table
+Once implemented, a type adaptor can be used in a DataJoint table by specifying it in a field definition
+
+```python
+class Specimen(dj.Manual):
+    definition = """
+    specimen_id : uint16
+    ---
+    specimen_data : <dj_blob>  # uses BlobType to store images in the database
+    specimen_image : <dj_bioformats>  # stores image using Bio-Formats
+    """
+```
+At insert time, the inserted value is supplied into the constructor of the registered `dj.CustomType`:
+
+```python
+Speciman.insert1({'specimen_id': 103, 'specimen_data': {'preparer': 'John'}, 'specimen_image', '/data/raw_img001.czi'})
+```
+
 
 ---
-# Object Storage  
+# Object Storage
 
-DataJoint integrates **object storage** into its **relational database-driven pipelines** to efficiently manage **large scientific datasets**. Object storage is used for two primary purposes:  
-1. **Object-Augmented Schemas** – Storing large, unstructured data (e.g., images, time series) externally while keeping structured metadata in the database.  
-2. **Database Backup & Export** – Providing a structured, shareable repository of pipeline data.  
-
----
-
-## Object-Augmented Schemas  
-
-A **DataJoint pipeline** follows a **hybrid storage model**, where:  
-- The **relational database** manages **structured metadata, dependencies, and transactions**.  
-- The **object store** handles **large, unstructured scientific data** (e.g., images, multidimensional arrays).  
-
-This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.  
-
-### **How Object-Typed Fields Work**  
-In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata in the database references externally stored objects. These objects are:  
-- **Inserted, retrieved, and managed** like standard database attributes.  
-- **Stored using a structured key-naming convention**.  
-- **Tracked in the database with metadata** such as format, size, checksum, and version.  
+DataJoint integrates **object storage** into its **relational database-driven pipelines** to efficiently manage **large scientific datasets**. Object storage is used for two primary purposes:
+1. **Object-Augmented Schemas** – Storing large, unstructured data (e.g., images, time series) externally while keeping structured metadata in the database.
+2. **Database Backup & Export** – Providing a structured, shareable repository of pipeline data.
 
 ---
 
-## The `dj.Object` Interface  
+## Object-Augmented Schemas
 
-To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:  
+A **DataJoint pipeline** follows a **hybrid storage model**, where:
+- The **relational database** manages **structured metadata, dependencies, and transactions**.
+- The **object store** handles **large, unstructured scientific data** (e.g., images, multidimensional arrays).
+
+This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.
+
+### **How Object-Typed Fields Work**
+In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata in the database references externally stored objects. These objects are:
+- **Inserted, retrieved, and managed** like standard database attributes.
+- **Stored using a structured key-naming convention**.
+- **Tracked in the database with metadata** such as format, size, checksum, and version.
+
+---
+
+## The `dj.Object` Interface
+
+To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:
 
 | **Method** | **Description** |
 |------------|----------------|
@@ -471,22 +536,22 @@ To insert an object, the object field must receive an instance of a subclass of 
 | `get_meta(self) -> dict` | Retrieves metadata (size, checksum, version). |
 | `verify(self, store, key) -> bool` | Confirms that the object exists and is valid. |
 
-### **Metadata Stored in the Database**  
-Each stored object includes metadata for **efficient retrieval, validation, and tracking**:  
-- **Object key** – Unique structured reference to the object.  
-- **File format/extension** – The storage format (e.g., `.zarr`, `.tiff`).  
-- **Size** – Object size in bytes.  
-- **Checksum** – Hash for data integrity verification.  
-- **Version** – Versioning identifier (if applicable).  
+### **Metadata Stored in the Database**
+Each stored object includes metadata for **efficient retrieval, validation, and tracking**:
+- **Object key** – Unique structured reference to the object.
+- **File format/extension** – The storage format (e.g., `.zarr`, `.tiff`).
+- **Size** – Object size in bytes.
+- **Checksum** – Hash for data integrity verification.
+- **Version** – Versioning identifier (if applicable).
 
 ---
 
-## Storage Backend Configuration**  
+## Storage Backend Configuration**
 
-A DataJoint client is configured to access the **storage backend** associated with each database. Supported backends include:  
-- **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).  
-- **Cloud-based object storage** – Amazon S3, Google Cloud Storage, Azure Blob, MinIO.  
-- **Hybrid storage** – Combining local and cloud storage for flexibility.  
+A DataJoint client is configured to access the **storage backend** associated with each database. Supported backends include:
+- **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).
+- **Cloud-based object storage** – Amazon S3, Google Cloud Storage, Azure Blob, MinIO.
+- **Hybrid storage** – Combining local and cloud storage for flexibility.
 
 DataJoint uses **[`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/)** to ensure compatibility across multiple storage backends.
 
@@ -514,9 +579,9 @@ When using object storage, the corresponding keys might be:
 s3://project_name/schema_name3/objects/table1/key1-value1.parquet
 s3://project_name/schema_name3/fields/table1-field1/key3-value3.zarr
 ```
-The **organizational structure of stored objects** is configurable, allowing partitioning based on **primary key attributes**.  
+The **organizational structure of stored objects** is configurable, allowing partitioning based on **primary key attributes**.
 
-Example configuration in `datajoint.toml`:  
+Example configuration in `datajoint.toml`:
 ```toml
 # Configuration for object storage
 [object_storage]
@@ -694,6 +759,8 @@ Fetching is the process of executing the qeury transferring query results from t
 - by AndList
 
 ### Restriction by a Subquery
+
+### Restriction by `dj.Top`
 
 ## Projection
 `A.proj(...)`
