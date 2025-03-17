@@ -432,7 +432,7 @@ This specification **prioritizes intuitive type names** (e.g., `uint8` instead o
 | `object` | **Externally stored files, datasets, or objects** | **File systems, object stores (S3, GCS, Azure Blob), or network storage (NFS, SMB)** |
 
 
-### Custom Types
+## Custom Types
 Custom types allow DataJoint to **seamlessly integrate and manage diverse data types** as if they were stored directly in a database field.
 They handle the **conversion** between **complex scientific objects** (e.g. `networkx.Graph`, `zarr`, `png`) and **core attribute types**, ensuring compatibility with relational storage.
 DataJoint projects can define and maintain a collection of type adaptors that serve their aims.
@@ -443,10 +443,10 @@ What Custom Types do:
 - **Retrieve stored data and reconstruct it** into its original form for use in computations.
 
 Key Benefts of Custom Types:
-✅ Extend DataJoint's capabilities to support scientific data types.
-✅ Ensure compatibility with relational storage while enabling flexible data handling.
-✅ Simplify retrieval and conversion of complex objects.
-✅ Maintain backward compatibility with legacy data structures.
+- [x] Extend DataJoint's capabilities to support scientific data types.
+- [x] Ensure compatibility with relational storage while enabling flexible data handling.
+- [x] Simplify retrieval and conversion of complex objects.
+- [x] Maintain backward compatibility with legacy data structures.
 
 Type adaptors must be **registered and available at the time of schema declaration** and maintained continually for data operations to ensure compatibility.
 Generally, revisions of adaptors must maintain backward compatibility.
