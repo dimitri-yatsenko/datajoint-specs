@@ -431,6 +431,37 @@ This specification **prioritizes intuitive type names** (e.g., `uint8` instead o
 | `blob` | **Raw binary data stored inside the database** | **Database storage (e.g., MySQL, PostgreSQL BLOB columns)** |
 | `object` | **Externally stored files, datasets, or objects** | **File systems, object stores (S3, GCS, Azure Blob), or network storage (NFS, SMB)** |
 
+## Object Types
+A **DataJoint pipeline** follows a **hybrid storage model**, where:
+- The **relational database** manages **structured metadata, dependencies, and transactions**.
+- The **object store** handles **large, unstructured scientific data** (e.g., images, multidimensional arrays).
+
+This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.
+
+### **How Object-Typed Fields Work**
+In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata in the database references externally stored objects. These objects are:
+- **Inserted, retrieved, and managed** like standard database attributes.
+- **Stored using a structured key-naming convention**.
+- **Tracked in the database with metadata** such as format, size, checksum, and version.
+
+## The `dj.Object` Interface
+
+To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:
+
+| **Method** | **Description** |
+|------------|----------------|
+| `put(self, store, key) -> dict` | Writes the object to storage and returns metadata (checksum, version, timestamp). |
+| `get(cls, store, key) -> "dj.Object"` | Reads the object from storage and reconstructs it. |
+| `get_meta(self) -> dict` | Retrieves metadata (size, checksum, version). |
+| `verify(self, store, key) -> bool` | Confirms that the object exists and is valid. |
+
+### **Metadata Stored in the Database**
+Each stored object includes metadata for **efficient retrieval, validation, and tracking**:
+- **Object key** – Unique structured reference to the object.
+- **File format/extension** – The storage format (e.g., `.zarr`, `.tiff`).
+- **Size** – Object size in bytes.
+- **Checksum** – Hash for data integrity verification.
+- **Version** – Versioning identifier (if applicable).
 
 ## Custom Types
 Custom types allow DataJoint to **seamlessly integrate and manage diverse data types** as if they were stored directly in a database field.
@@ -507,8 +538,6 @@ DataJoint integrates **object storage** into its **relational database-driven pi
 1. **Object-Augmented Schemas** – Storing large, unstructured data (e.g., images, time series) externally while keeping structured metadata in the database.
 2. **Database Backup & Export** – Providing a structured, shareable repository of pipeline data.
 
----
-
 ## Object-Augmented Schemas
 
 A **DataJoint pipeline** follows a **hybrid storage model**, where:
@@ -517,34 +546,6 @@ A **DataJoint pipeline** follows a **hybrid storage model**, where:
 
 This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.
 
-### **How Object-Typed Fields Work**
-In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata in the database references externally stored objects. These objects are:
-- **Inserted, retrieved, and managed** like standard database attributes.
-- **Stored using a structured key-naming convention**.
-- **Tracked in the database with metadata** such as format, size, checksum, and version.
-
----
-
-## The `dj.Object` Interface
-
-To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:
-
-| **Method** | **Description** |
-|------------|----------------|
-| `put(self, store, key) -> dict` | Writes the object to storage and returns metadata (checksum, version, timestamp). |
-| `get(cls, store, key) -> "dj.Object"` | Reads the object from storage and reconstructs it. |
-| `get_meta(self) -> dict` | Retrieves metadata (size, checksum, version). |
-| `verify(self, store, key) -> bool` | Confirms that the object exists and is valid. |
-
-### **Metadata Stored in the Database**
-Each stored object includes metadata for **efficient retrieval, validation, and tracking**:
-- **Object key** – Unique structured reference to the object.
-- **File format/extension** – The storage format (e.g., `.zarr`, `.tiff`).
-- **Size** – Object size in bytes.
-- **Checksum** – Hash for data integrity verification.
-- **Version** – Versioning identifier (if applicable).
-
----
 
 ## Storage Backend Configuration**
 
