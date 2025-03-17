@@ -35,12 +35,15 @@ By combining the rigor of **relational databases** with **built-in computational
 
 ## Open-Source Development
 
-This document specifies the **DataJoint open-source framework**, a **free, Python-based library** that enables scientists to design, manage, and query relational data pipelines. It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
+This document specifies the **DataJoint open-source framework**, a **free, Python-based library and API** that enables scientists to design, manage, and query relational data pipelines.
+It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
+
+What is not included in the open-source framework?
 
 Setting up a fully operational scientific pipeline requires configuring **databases, object storage, compute infrastructure, and workflow automation**.
 
 While the open-source framework defines **computational data pipelines**, it does **not orchestrate computations or schedule jobs**. Users may:
-- Implement their own orchestration.
+- Implement their own orchestration processes or scripts for manual execution.
 - Integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution.
 - Use DataJoint's platform for a fully managed service.
 
@@ -90,6 +93,8 @@ DataJoint adopts familiar terms from relational database theory and clearly defi
 | **Query Expression** | A formal definition of a query expressed with [**query operators**](#query-operators)  acting on input tables to define a new output table.
 | **Fetch** | The execution of a query and transfer of results from server to client. |
 | **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, durable (ACID) unit. All operations succeed or fail together, with partial results invisible externally. |
+
+---
 
 ## Frequently Asked Questions
 
@@ -223,7 +228,8 @@ Many research projects benefit from integrating DataJoint pipelines with:
 
 ## **Pipeline ≡ Python Package**
 
-A **DataJoint pipeline** is typically implemented as a **dedicated Python package**, where **modules correspond to database schemas**. This structure ensures that data, computations, and dependencies remain **organized, traceable, and reproducible**.
+A **DataJoint pipeline** is typically implemented as a **dedicated Python package**, where **modules correspond to database schemas**.
+This structure ensures that data, computations, and dependencies remain **organized, traceable, and reproducible**.
 
 A **DataJoint pipeline follows a directed acyclic graph (DAG) structure**, where:
 
@@ -427,46 +433,67 @@ This specification **prioritizes intuitive type names** (e.g., `uint8` instead o
 
 
 ## Type Adaptors
+A type adaptor is an object of 
 
 ---
-# Object Storage
-DataJoint combines **relational databases** for structured metadata and **object stores** for large scientific datasets.
-The relational database ensures **data integrity, fast querying, and transactional consistency**, while object storage efficiently handles **high-volume, unstructured data** (e.g., images, arrays).
-This hybrid approach **scales seamlessly**, keeping metadata relational while allowing **flexible, distributed storage** for large data objects.
+# Object Storage  
 
+DataJoint integrates **object storage** into its **relational database-driven pipelines** to efficiently manage **large scientific datasets**. Object storage is used for two primary purposes:  
+1. **Object-Augmented Schemas** – Storing large, unstructured data (e.g., images, time series) externally while keeping structured metadata in the database.  
+2. **Database Backup & Export** – Providing a structured, shareable repository of pipeline data.  
 
-## Object Management
-In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata resides in a relational database, while large scientific data objects are stored externally.
-This integration allows **structured tabular data** to reference **large, complex data structures** (e.g., multidimensional arrays, images, time series).
+---
 
-Objects are managed similarly to other database attributes but are stored in a **configurable storage backend**, using a structured key-naming convention.
-They are created and accessed through standard **DataJoint operations**: `insert`, `delete`, and `fetch`.
-Operations on stored objects maintain the **same consistency and integrity guarantees** as data stored in the database.
+## Object-Augmented Schemas  
 
+A **DataJoint pipeline** follows a **hybrid storage model**, where:  
+- The **relational database** manages **structured metadata, dependencies, and transactions**.  
+- The **object store** handles **large, unstructured scientific data** (e.g., images, multidimensional arrays).  
 
-A DataJoint client is configured to access the **storage backend** associated with each database.
-For each **insert** and **fetch** operation, the client **constructs a structured key** for object fields.
-The corresponding **database entry** stores metadata such as:
-- **Object key (structured reference to the stored object)**
-- **File format/extension**
-- **Size**
-- **Checksum (for integrity verification)**
-- **Tags (for metadata indexing and lookup)**
+This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.  
 
-The **organizational structure of stored objects is configurable**, allowing **logical partitioning** based on primary key attributes.
+### **How Object-Typed Fields Work**  
+In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata in the database references externally stored objects. These objects are:  
+- **Inserted, retrieved, and managed** like standard database attributes.  
+- **Stored using a structured key-naming convention**.  
+- **Tracked in the database with metadata** such as format, size, checksum, and version.  
 
+---
 
-## Storage Backend Configuration
-A DataJoint client is configured to access the storage backend associated with each database.
-For each insert and fetch operation, the client constructs the relative path for the file fields.
-The database entry for the file type stores metadata such as file extension, size, checksum, and tags.
-The structure is configurable as part of the storage backend configuration.
+## The `dj.Object` Interface  
 
-### **Example Structured Object Storage Pattern**
+To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:  
 
-A typical storage structure follows a **structured key-naming convention**, maintaining logical organization:
+| **Method** | **Description** |
+|------------|----------------|
+| `put(self, store, key) -> dict` | Writes the object to storage and returns metadata (checksum, version, timestamp). |
+| `get(cls, store, key) -> "dj.Object"` | Reads the object from storage and reconstructs it. |
+| `get_meta(self) -> dict` | Retrieves metadata (size, checksum, version). |
+| `verify(self, store, key) -> bool` | Confirms that the object exists and is valid. |
 
-```bash
+### **Metadata Stored in the Database**  
+Each stored object includes metadata for **efficient retrieval, validation, and tracking**:  
+- **Object key** – Unique structured reference to the object.  
+- **File format/extension** – The storage format (e.g., `.zarr`, `.tiff`).  
+- **Size** – Object size in bytes.  
+- **Checksum** – Hash for data integrity verification.  
+- **Version** – Versioning identifier (if applicable).  
+
+---
+
+## Storage Backend Configuration**  
+
+A DataJoint client is configured to access the **storage backend** associated with each database. Supported backends include:  
+- **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).  
+- **Cloud-based object storage** – Amazon S3, Google Cloud Storage, Azure Blob, MinIO.  
+- **Hybrid storage** – Combining local and cloud storage for flexibility.  
+
+DataJoint uses **[`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/)** to ensure compatibility across multiple storage backends.
+
+## Example Structured Object Storage Pattern
+
+A *DataJoint project* creates a structured hierarchical storage pattern:
+```
 📁 project_name/
 ├── datajoint.toml
 ├──📁 schema_name1/
@@ -481,53 +508,38 @@ A typical storage structure follows a **structured key-naming convention**, main
 │  │   ├── table1-field1/key3-value3.zarr
 │  │   ├── table1-field2/key3-value3.gif
 ...  ...
-```
-When using object storage, the corresponding object keys might be:
+``
+When using object storage, the corresponding keys might be:
 ```
 s3://project_name/schema_name3/objects/table1/key1-value1.parquet
 s3://project_name/schema_name3/fields/table1-field1/key3-value3.zarr
 ```
+The **organizational structure of stored objects** is configurable, allowing partitioning based on **primary key attributes**.  
 
-This structured naming approach allows:
-* Scalable organization (even in flat object storage systems).
-* Efficient indexing and retrieval using key-based lookups.
-* Cross-platform compatibility across file systems and cloud object stores.
-
-This file hierarchy serves to store a complete copy of the tabular relational data in the `tables` subfolder and the contents of the file fields in the fields subfolder.
-The table name, field name, and primary key attributes form the path using a configurable pattern.
-Several options are available for partitioning this file repository based on the values of a specific subset of primary key attributes.```
-
-The `datajoint.toml` configuration file is essential for setting up a DataJoint store to support a project.
-It defines the repository's organization, and key information within this file should remain unchanged after data population to avoid issues with existing data.
-
-## Partitioning
-The storage backend configuration supports logical partitioning, allowing DataJoint to organize stored objects using a structured key pattern.
-For example, configuring partitioning in datajoint.toml:
-```
+Example configuration in `datajoint.toml`:  
+```toml
 # Configuration for object storage
 [object_storage]
 partition_pattern = "subject{subject_id}/session{session_id}"
 ```
-
-Here:
-* `[object_storage]` defines settings for storage backend configuration.
-* `partition_pattern` dynamically replaces placeholders `({subject_id}, {session_id})` with actual values during object storage operations.
-
+This structure dynamically replaces placeholders {`subject_id`} and {`session_id`} with actual values.
+**Example Stored Objects with Partitioning**
 ```
-s3://my-bucket/subject123/session45/image1.tiff
-s3://my-bucket/subject124/session46/image2.tiff
+s3://my-bucket/project_name/subject123/session45/schema_name3/objects/table1/key1-value1/image1.tiff
+s3://my-bucket/project_name/subject123/session45/schema_name3/objects/table2/key2-value2/movie2.zarr
 ```
-This logical organization improves data navigation and retrieval while maintaining compatibility with object storage paradigms.
 
-## File Operations
-The DataJoint client uses protocols such as [`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/), supporting various storage backends.
-During insertion, a field of type `file` expects a bytestream or a callback function that accepts a path as its argument and writes its contents to that path.
-The DataJoint client constructs the file structure and hierarchy according to the specied configuration.
+This structured naming approach allows:
+* Efficient indexing & retrieval using key-based lookups.
+* Scalable organization across flat object storage systems.
+* Cross-platform compatibility with both file systems & cloud storage.
 
 ## Export, Sharing, and Backup/Restore
-The structured project data folder serves as a comprehensive, publishable copy of the data, accessible and querying  by DataJoint and  other tools.
-It is designed for both human navigation and tool accessibility.
-The Schema Diagram object provides methods for selecting portions of the data for export, including specific tables and data slices.
+The structured project data repository serves as a comprehensive, publishable copy of the dataset, accessible by DataJoint and other tools.
+
+- Designed for human navigation & automated tools.
+- Supports exporting portions of the dataset (specific tables, time ranges).
+- Enables easy backup & migration of scientific workflows.
 
 The export method recreates the data repository in full at another location.
 DataJoint offers tools to restore the database from the file repository using the tabular data, supporting data publishing and pipeline cloning alongside the data.
