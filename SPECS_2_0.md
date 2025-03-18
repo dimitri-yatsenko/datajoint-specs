@@ -906,7 +906,7 @@ Auto-populated tables must implement the `make(self, key)` method, which defines
 ```python
 def make(self, key, **make_opts) -> None:
 ```
-The make method consists of three essential steps:
+The `make` method consists of three essential steps:
 1. `Fetch`: Retrieve input data from upstream tables based on key.
 2. `Compute`: Process the retrieved data to generate new results.
 3. `Insert`: Store the computed results using self.insert1().
@@ -918,19 +918,7 @@ In DataJoint's some tables are designated for automated computations.
 This means that users cannot simply insert data into them.
 Data must be calculator according to a computation that the table class specifies.
 
-## The `make` Method
-For auto-populated tables, their table classes must define the `make(self, key)` method, which specifies the comptutation to be performed.
-
-Its interface is as follows:
-```python
-   def make(self, key, **make_opts) -> None:
-```
-and its body consist of three major sections:
-1. *Fetch:* Fetch data from upstream tables using `key` as the restriction.
-2. *Compute:* Compute result data from the fetched data.
-3. *Insert:* Insert the result data into `self` (by invoking `self.insert1`).
-
-Example: Computing an Average Signal
+**Example: Computing an Average Signal**
 ```python
 @schema
 class ProcessedSignal(dj.Computed):
@@ -968,8 +956,8 @@ This is done by splitting make into three methods:
 * `make_compute(key, fetched)`: Performs computation outside the transaction.
 * `make_insert(key, fetched, computed)`: Re-fetches and verifies inputs, then inserts results in a transaction.
 
-Pseudocode for Deferred Transaction Handling:
-```pseudo
+**Pseudocode for Deferred Transaction Handling:**
+```
 fetched = self.make_fetch(key)
 computed = self.make_compute(key, fetched)
 
@@ -989,7 +977,7 @@ else:
 ## Key Source: Determining What Needs to Be Computed
 The **key source** defines which entries **require computation**.
 * It is automatically determined by DataJoint.
-* It is formed as the join of all foreign key tables referenced in the table’s primary key.
+* It is formed as the join of all tables referenced by foreign keys in the table’s primary key.
 * Existing computed entries are excluded, ensuring only new computations are performed
 
 ### Example: Understanding Key Source
@@ -1016,7 +1004,7 @@ acq.Image.proj() * ProcessingMethod.proj() - ProcessedImage
 | **Computed (`dj.Computed`)** | Fully reproducible computations | ✅ Guaranteed | Uses only **pipeline data** |
 | **Imported (`dj.Imported`)** | Data ingested from external sources | ❌ Not guaranteed | Reads from **external sources (e.g., instruments, APIs)** |
 
-### Summary of automated computing
+## Summary of automated computing
 - **DataJoint integrates computation directly into its data model**, similar to how spreadsheets update formulas when inputs change.
 - **Computation tables** (`Computed` and `Imported`) must define a `make(self, key)` method to handle data processing.
 - The key source automatically determines which entries need computation.
