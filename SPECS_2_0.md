@@ -149,8 +149,9 @@ A fully functional DataJoint pipeline consists of the following key components:
 ---
 
 ### 1. Code Repository
-A **dedicated version-controlled repository** (e.g., **GitHub, GitLab, Bitbucket**, or a self-hosted `git` instance) serves as the **central hub** for managing pipeline development and execution. It stores:
-- **Pipeline definitions** – schemas, table structures, and computational dependencies.
+A **dedicated version-controlled repository** (e.g., **GitHub, GitLab, Bitbucket**, or a self-hosted `git` instance) serves as the **central hub** for managing pipeline development and execution.
+It stores:
+- **Pipeline definitions** – schemas, table structures, and computational dependencies, relying on the DataJoint Client API.
 - **Configuration settings** – database, storage, and execution parameters.
 - **Access control policies** – user permissions and security settings.
 - **Containerized environments** – reproducible execution setups.
