@@ -530,6 +530,87 @@ At insert time, the inserted value is supplied into the constructor of the regis
 Speciman.insert1({'specimen_id': 103, 'specimen_data': {'preparer': 'John'}, 'specimen_image', '/data/raw_img001.czi'})
 ```
 
+## Master-Part Relationship
+
+### Ensuring Group Integrity
+
+In many cases, **multiple related records must appear together or not at all**. For example:
+- A **billing system** must ensure that a bill is stored **with all its line items**.
+- A **segmentation algorithm** must record an image **along with all identified regions**.
+
+To enforce **group integrity**, DataJoint provides the **master-part pattern**—a construct that ensures **atomic insertion and deletion** of related data entries.
+
+### Master-Part Pattern
+
+A **master table** represents the **primary entity**, while **part tables** store dependent attributes that must always appear together with their master entry.
+
+- **Master tables** are declared as standard DataJoint tables and can be of any tier.
+- **Part tables** are defined as **nested classes** within the master table.
+- The **full class name** follows the format:
+  ```
+  module.MasterClass.PartClass
+  ```
+- The **database table name** also embeds the master and part name.
+- The **part table always has a foreign key** to its master table.
+
+To simplify this relationship, DataJoint provides the alias `-> master` in part table definitions, automatically establishing a **foreign key link**.
+
+### **Restriction: A Part Table Cannot Be a Master Table**
+A **part table cannot serve as a master table** for another part table. The master-part relationship **cannot be nested**.
+Nor can a part table have two masters.
+- **Each part table belongs exclusively to a single master table.**
+- **Part tables cannot contain additional part tables.**
+- **For hierarchical relationships, use additional master tables with separate part tables instead.**
+
+---
+
+**Example: Cell Segmentation with a Master-Part Relationship**
+
+The following example demonstrates a **segmentation pipeline**, where `Segmentation` serves as the **master table**, and `Segmentation.Region` captures **all segmented regions** for each image.
+
+```python
+@schema
+class Segmentation(dj.Computed):
+  definition = """
+  -> acq.Image
+  -> SegmentationMethod
+  ---
+  segmented_image : <nparray>
+  number_regions  : uint16
+  """
+
+  class Region(dj.Part):
+      definition = """
+      -> master  # Establishes a foreign key to Segmentation
+      region_idx : uint16  # differentiates regions within the segmentation
+      ---
+      region_pixels  : <nparray>
+      region_weights : <nparray>
+      """
+```
+
+Key Characteristics of this Master-Part
+[x] Ensures atomic transactions – A segmentation entry and all its regions are inserted and deleted together.
+[x] Maintains referential integrity – Part records cannot exist without a corresponding master record.
+[x] Simplifies queries – The `-> master` alias simplifies the definition of the foreign key.
+
+### Enforcement via Transaction Processing
+When using the master-part pattern, DataJoint guarantees:
+
+- Insertion is atomic – The master entry and all its parts are inserted in a single transaction.
+- Deletion is cascaded – Removing a master entry automatically deletes all its parts.
+- No nested parts – A part table cannot serve as a master table for another part.
+
+This mechanism eliminates orphaned records, ensuring data consistency and integrity in relational workflows.
+
+---
+# Diagram
+DataJoint comes with a formally-defined diagramming notation implemented by the `dj.Diagram` class.
+The pipeline is visualized as a **Directed Acyclic Graph** with nodes corresponding to classes and edges corresponding to foreign key dependencies between them.
+The diagram is always depicted with the data moving top-to-bottom (foreign keys referencing upward) or left-to-right (foreign keys referencing leftward).
+The diagrams
+
+
 
 ---
 # Object Storage
@@ -800,5 +881,36 @@ If the tables `A` and `B` have attributes with the same names but do not trace t
 
 -----------
 # Computation
+
+DataJoint implements computation as a native part of its data model.
+In a sense, it's quite similar to spreadsheets where some cells contain values and other cells represent formulas.
+New inputs causes an automated and cascaded computations of new results.
+In DataJoint's some tables are designated for automated computations.
+This means that users cannot simply insert data into them.
+Data must be calculator according to a computation that the table class specifies.
+
+## The `make` Method
+For auto-populated tables, their table classes must define the `make(self, key)` method, which specifies the comptutation to be performed.
+
+Its interface is as follows:
+```python
+   def make(self, key, **make_opts) -> None:
+```
+and its body consist of three major sections:
+1. Fetch data from upstream using `key` as the restriction
+2. Perform the computations on the data
+3. Insert the data into `self` (by invoking (`self.insert1`)
+
+## The Key Source
+
+
+## Computed vs. Imported
+
+Two [table tiers](#-table-tiers) are designatd for automated computations: computed and imported.
+There no implementation differences between them and the distinction is purely semantic.
+Imported tables may access
+
+
+## Key Source
 
 
