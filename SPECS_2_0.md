@@ -948,13 +948,14 @@ Each make call runs inside an ACID-compliant transaction, ensuring:
 ## Handling Long-Running Computations
 For long-running computations (e.g., processing large datasets for hours or days), holding a continuous database transaction can block critical operations. To mitigate this, DataJoint supports deferred transaction verification, where:
 
-Computation is performed outside the transaction.
-Inputs are re-verified inside a minimal transaction.
+* Computation is performed outside the transaction.
+* Inputs are re-verified inside a minimal transaction.
+
 This is done by splitting make into three methods:
 
-* `make_fetch(key)`: Retrieves input data before computation.
-* `make_compute(key, fetched)`: Performs computation outside the transaction.
-* `make_insert(key, fetched, computed)`: Re-fetches and verifies inputs, then inserts results in a transaction.
+1. `make_fetch(key)`: Retrieves input data before computation.
+2. `make_compute(key, fetched)`: Performs computation outside the transaction.
+3. `make_insert(key, fetched, computed)`: Re-fetches and verifies inputs, then inserts results in a transaction.
 
 **Pseudocode for Deferred Transaction Handling:**
 ```
