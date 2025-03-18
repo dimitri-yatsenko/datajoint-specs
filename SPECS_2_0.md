@@ -527,7 +527,10 @@ class Specimen(dj.Manual):
 At insert time, the inserted value is supplied into the constructor of the registered `dj.CustomType`:
 
 ```python
-Speciman.insert1({'specimen_id': 103, 'specimen_data': {'preparer': 'John'}, 'specimen_image', '/data/raw_img001.czi'})
+Speciman.insert1({
+    'specimen_id': 103,
+    'specimen_data': {'preparer': 'John'},
+    'specimen_image', '/data/raw_img001.czi'})
 ```
 
 ## Master-Part Relationship
@@ -555,14 +558,13 @@ A **master table** represents the **primary entity**, while **part tables** stor
 
 To simplify this relationship, DataJoint provides the alias `-> master` in part table definitions, automatically establishing a **foreign key link**.
 
-### **Restriction: A Part Table Cannot Be a Master Table**
+### Restriction: A Part Table Cannot Be a Master Table
 A **part table cannot serve as a master table** for another part table. The master-part relationship **cannot be nested**.
 Nor can a part table have two masters.
 - **Each part table belongs exclusively to a single master table.**
 - **Part tables cannot contain additional part tables.**
 - **For hierarchical relationships, use additional master tables with separate part tables instead.**
 
----
 
 **Example: Cell Segmentation with a Master-Part Relationship**
 
@@ -581,7 +583,7 @@ class Segmentation(dj.Computed):
 
   class Region(dj.Part):
       definition = """
-      -> master  # Establishes a foreign key to Segmentation
+      -> master     #  foreign key to Segmentation
       region_idx : uint16  # differentiates regions within the segmentation
       ---
       region_pixels  : <nparray>
@@ -589,10 +591,10 @@ class Segmentation(dj.Computed):
       """
 ```
 
-Key Characteristics of this Master-Part
-[x] Ensures atomic transactions – A segmentation entry and all its regions are inserted and deleted together.
-[x] Maintains referential integrity – Part records cannot exist without a corresponding master record.
-[x] Simplifies queries – The `-> master` alias simplifies the definition of the foreign key.
+Key characteristics of this master-part example:
+- [x] Ensures atomic transactions – A segmentation entry and all its regions are inserted and deleted together.
+- [x] Maintains referential integrity – Part records cannot exist without a corresponding master record.
+- [x] Simplifies queries – The `-> master` alias simplifies the definition of the foreign key.
 
 ### Enforcement via Transaction Processing
 When using the master-part pattern, DataJoint guarantees:
@@ -607,8 +609,13 @@ This mechanism eliminates orphaned records, ensuring data consistency and integr
 # Diagram
 DataJoint comes with a formally-defined diagramming notation implemented by the `dj.Diagram` class.
 The pipeline is visualized as a **Directed Acyclic Graph** with nodes corresponding to classes and edges corresponding to foreign key dependencies between them.
+The tables are grouped by their schemas, which, in turn, also form a DAG, where edges bundle all the foreign key from the child schemas to the parent schemas.
 The diagram is always depicted with the data moving top-to-bottom (foreign keys referencing upward) or left-to-right (foreign keys referencing leftward).
-The diagrams
+
+`dj.Diagrams` are graph objects  and support an algebra of graph operations: union, intersection. (Elaborate: what's the operation to include one layer of nodes upstream or downstream?) .
+
+The nodes are colored according to their [table tier](#table tiers).
+
 
 
 
@@ -628,7 +635,7 @@ A **DataJoint pipeline** follows a **hybrid storage model**, where:
 This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.
 
 
-## Storage Backend Configuration**
+## Storage Backend Configuration
 
 A DataJoint client is configured to access the **storage backend** associated with each database. Supported backends include:
 - **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).
@@ -637,7 +644,7 @@ A DataJoint client is configured to access the **storage backend** associated wi
 
 DataJoint uses **[`fsspec`](https://filesystem-spec.readthedocs.io/en/latest/)** to ensure compatibility across multiple storage backends.
 
-## Example Structured Object Storage Pattern
+## Example Structured Storage Pattern
 
 A *DataJoint project* creates a structured hierarchical storage pattern:
 ```
@@ -655,7 +662,8 @@ A *DataJoint project* creates a structured hierarchical storage pattern:
 │  │   ├── table1-field1/key3-value3.zarr
 │  │   ├── table1-field2/key3-value3.gif
 ...  ...
-``
+```
+
 When using object storage, the corresponding keys might be:
 ```
 s3://project_name/schema_name3/objects/table1/key1-value1.parquet
@@ -881,6 +889,26 @@ If the tables `A` and `B` have attributes with the same names but do not trace t
 
 -----------
 # Computation
+DataJoint integrates **computation directly into its data model**, similar to how spreadsheets update **formula-driven cells** when inputs change.
+Some tables are designated for **automated computations**, meaning:
+- **Users cannot manually insert data** into these tables.
+- **Results are generated automatically** based on predefined computations.
+- **New inputs trigger cascaded computations** of dependent results.
+
+This ensures **data consistency, integrity, and reproducibility** throughout the pipeline.
+
+## The `make` Method: Defining Computation
+
+Auto-populated tables must implement the `make(self, key)` method, which defines **how computations are performed**.
+
+**Method Signature**:
+```python
+def make(self, key, **make_opts) -> None:
+```
+The make method consists of three essential steps:
+1. `Fetch`: Retrieve input data from upstream tables based on key.
+2. `Compute`: Process the retrieved data to generate new results.
+3. `Insert`: Store the computed results using self.insert1().
 
 DataJoint implements computation as a native part of its data model.
 In a sense, it's quite similar to spreadsheets where some cells contain values and other cells represent formulas.
@@ -897,20 +925,102 @@ Its interface is as follows:
    def make(self, key, **make_opts) -> None:
 ```
 and its body consist of three major sections:
-1. Fetch data from upstream using `key` as the restriction
-2. Perform the computations on the data
-3. Insert the data into `self` (by invoking (`self.insert1`)
+1. *Fetch:* Fetch data from upstream tables using `key` as the restriction.
+2. *Compute:* Compute result data from the fetched data.
+3. *Insert:* Insert the result data into `self` (by invoking `self.insert1`).
 
-## The Key Source
+Example: Computing an Average Signal
+```python
+@schema
+class ProcessedSignal(dj.Computed):
+    definition = """
+    -> RawSignal
+    ---
+    avg_signal: float
+    """
 
+    def make(self, key):
+        # Step 1: Fetch input data
+        raw_data = (RawSignal & key).fetch1("signal")
 
-## Computed vs. Imported
+        # Step 2: Compute the result
+        avg_value = raw_data.mean()
 
-Two [table tiers](#-table-tiers) are designatd for automated computations: computed and imported.
-There no implementation differences between them and the distinction is purely semantic.
-Imported tables may access
+        # Step 3: Insert the computed result
+        self.insert1({**key, "avg_signal": avg_value})
+```
+This approach ensures that computations are traceable and reproducible, with outputs always linked to their inputs.
 
+Each make call runs inside an ACID-compliant transaction, ensuring:
 
-## Key Source
+* **Computational integrity** – Results are correctly referenced to inputs.
+* **Atomic execution** – Either the computation fully completes, or no partial data is stored.
 
+## Handling Long-Running Computations
+For long-running computations (e.g., processing large datasets for hours or days), holding a continuous database transaction can block critical operations. To mitigate this, DataJoint supports deferred transaction verification, where:
 
+Computation is performed outside the transaction.
+Inputs are re-verified inside a minimal transaction.
+This is done by splitting make into three methods:
+
+* `make_fetch(key)`: Retrieves input data before computation.
+* `make_compute(key, fetched)`: Performs computation outside the transaction.
+* `make_insert(key, fetched, computed)`: Re-fetches and verifies inputs, then inserts results in a transaction.
+
+Pseudocode for Deferred Transaction Handling:
+```pseudo
+fetched = self.make_fetch(key)
+computed = self.make_compute(key, fetched)
+
+begin transaction
+fetched_again = self.make_fetch(key)
+
+if fetched != fetched_again:
+    rollback transaction
+else:
+    self.make_insert(key, fetched, computed)
+    commit transaction
+```
+
+- This **minimizes transaction time** while ensuring input data remains unchanged between `fetch` and `insert`.
+- The **trade-off** is fetching the input data **twice**, but this prevents blocking database operations.
+
+## Key Source: Determining What Needs to Be Computed
+The **key source** defines which entries **require computation**.
+* It is automatically determined by DataJoint.
+* It is formed as the join of all foreign key tables referenced in the table’s primary key.
+* Existing computed entries are excluded, ensuring only new computations are performed
+
+### Example: Understanding Key Source
+Consider a computed table that processes images recorded by different methods:
+```python
+@schema
+class ProcessedImage(dj.Computed):
+    definition = """
+    -> acq.Image
+    -> ProcessingMethod
+    ---
+    processed_data: blob
+    """
+```
+The key source in this case is:
+```python
+acq.Image.proj() * ProcessingMethod.proj() - ProcessedImage
+```
+
+## Computed vs Imported Tables
+
+| **Tier** | **Purpose** | **Reproducibility** | **Data Source** |
+|---|---|---|---|
+| **Computed (`dj.Computed`)** | Fully reproducible computations | ✅ Guaranteed | Uses only **pipeline data** |
+| **Imported (`dj.Imported`)** | Data ingested from external sources | ❌ Not guaranteed | Reads from **external sources (e.g., instruments, APIs)** |
+
+### Summary of automated computing
+- **DataJoint integrates computation directly into its data model**, similar to how spreadsheets update formulas when inputs change.
+- **Computation tables** (`Computed` and `Imported`) must define a `make(self, key)` method to handle data processing.
+- The key source automatically determines which entries need computation.
+- Computed tables ensure full reproducibility, while imported tables depend on external sources.
+- For long-running computations, DataJoint supports transaction handling to prevent database locking, where the `make` method needs to be split into three parts: `make_fetch`, `make_compute`, and `make_insert`.
+- DataJoint ensures **atomic transaction processing**, preventing incomplete computations.
+
+By structuring computation within DataJoint pipelines, researchers can build efficient, reproducible, and scalable data workflows.
