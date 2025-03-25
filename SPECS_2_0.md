@@ -5,7 +5,7 @@
 * Accepted:  2025-04-01 (projected)
 * Authors:
   * [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
-* Impelements DSEPs:
+* Implements DSEPs:
   * None
 * Description: First release of DataJoint Specs. Versioning starts with 2.0 to stay ahead of current implementations, although implementation versions are independent of the specs versions.
 
@@ -26,19 +26,37 @@ By following the **DataJoint Specs**, users and developers can:
 
 ## Purpose of DataJoint
 
-**DataJoint extends the relational database model into a computational database**, where some tables store **raw inputs**, while others define **computations and store computed results**. This approach enables **structured, scalable, and reproducible** scientific data processing.
+**DataJoint is a framework that transforms relational databases into computational engines for scientific workflows.**
 
-A **computational database** serves as a **scientific data pipeline**, explicitly defining dependencies between **data acquisition, transformation, and analysis**. DataJoint ensures **data integrity**, supports **ACID-compliant transactions**, and integrates seamlessly with **Python**. It also extends relational databases to manage **complex scientific data types** (e.g., multidimensional arrays) and embeds computations via **foreign-key dependencies**.
+At its core, **DataJoint extends the traditional relational data model into a _computational database_**, where some tables contain raw input data, while others define computations and store their results.
+This makes it possible to express entire scientific workflows—data acquisition, transformation, analysis—as structured, executable pipelines directly within the database.
 
-By combining the rigor of **relational databases** with **built-in computational workflows**, DataJoint empowers researchers to **design, implement, and share scalable, reproducible data pipelines**.
+In this architecture, the database becomes more than a storage system.
+It becomes a **living pipeline** that encodes the logic and lineage of scientific work:
 
+- **Structured**: with explicit schema and clear data relationships  
+- **Scalable**: supporting high-throughput, high-dimensional experimental data  
+- **Reproducible**: with every step recorded, auditable, and rerunnable  
+
+DataJoint maintains the rigor of relational databases—ensuring **data integrity, ACID-compliant transactions, and declarative query logic**—but extends their scope to meet the demands of modern science:
+
+- **Computations become first-class citizens** in the schema, tied to data via dependency graphs  
+- Complex scientific data types (e.g., multidimensional arrays, images, time series) are modeled and managed natively  
+- Data pipelines are encoded explicitly, enabling automation, parallelism, and long-term reproducibility
+
+This opens up powerful new capabilities for scientific teams: collaborative development of shared workflows, automated processing at scale, and systematic management of data provenance.
+
+Just as spreadsheet formulas allow for structured, cascading transformations of data, **DataJoint enables scientists to define and automate sophisticated data workflows**—but at the scale of institutions, consortia, and national data infrastructures.
+
+By unifying computational logic and relational data modeling, **DataJoint provides a foundation for building high-integrity, high-performance scientific data ecosystems.**
 
 ## Open-Source Development
 
-This document specifies the **DataJoint open-source framework**, a **free, Python-based library and API** that enables scientists to design, manage, and query relational data pipelines.
-It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
+This document specifies DataJoint as an open standard DataJoint as an open standard.
+The implementation of many of its components is conducted in open source, although some component may be developed privately while still claiming compliance to this standard.
 
-What is not included in the open-source framework?
+The reference implementation is centered around [DataJoint-Python](https://github.com/datajont/datajoint-python), which implements a **free, Python-based library and API** that enables scientists to design, manage, and query relational data pipelines.
+It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
 
 Setting up a fully operational scientific pipeline requires configuring **databases, object storage, compute infrastructure, and workflow automation**.
 
@@ -171,7 +189,7 @@ The **database acts as the system of record** (authoritative source of truth, de
 - **Database administrators** configure access controls for security and compliance.
 - The **DataJoint Platform** provides **role-based access control (RBAC)** to efficiently manage permissions.
 
-### 3. Object Store
+### 3. Object Store (Optional)
 A **scalable storage backend** is required to manage **large scientific datasets** referenced in the relational database but stored externally.
 
 **Supported Storage Backends:**
