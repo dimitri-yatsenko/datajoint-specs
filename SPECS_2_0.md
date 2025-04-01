@@ -164,7 +164,7 @@ It organizes **structured data, metadata, and large data objects**, ensuring **d
 
 A fully functional DataJoint pipeline consists of the following key components:
 
----
+![DataJoint Platform](figures/dj-platform.png) 
 
 ### 1. Code Repository
 A **dedicated version-controlled repository** (e.g., **GitHub, GitLab, Bitbucket**, or a self-hosted `git` instance) serves as the **central hub** for managing pipeline development and execution.
