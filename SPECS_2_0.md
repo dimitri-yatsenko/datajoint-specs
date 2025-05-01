@@ -2,7 +2,7 @@
 
 * Version: 2.0
 * Status: [DRAFT]
-* Accepted:  2025-04-01 (projected)
+* Accepted:  2025-06-01 (projected)
 * Authors:
   * [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
 * Implements DSEPs:
@@ -850,6 +850,14 @@ Foreign keys enforce referential integrity, which affects how insert, delete, an
 
 A query is a function on the data performed on the server side, yielding a derived table. The results are transferred to the client through fetch operations.
 
+## Query Expressions
+
+A query expression is a formal definition of a query expressed with [query operators](#query-operators) acting on input tables to define a new output table. Query expressions are:
+
+1. **Composable**: Can be combined to form more complex queries
+2. **Declarative**: Describe what data to retrieve rather than how to retrieve it
+3. **Relational**: Maintain relational integrity in the results
+
 ## Fetch
 
 Fetching is the process of executing the query and transferring query results from the server to the client. The fetch operation retrieves query output in various formats, typically as dictionaries, lists, or NumPy arrays.
@@ -870,14 +878,6 @@ for rec in (Student & {"state": "TX"}):
     print(rec)
 ```
 
-## Query Expressions
-
-A query expression is a formal definition of a query expressed with query operators acting on input tables to define a new output table. Query expressions are:
-
-1. **Composable**: Can be combined to form more complex queries
-2. **Declarative**: Describe what data to retrieve rather than how to retrieve it
-3. **Relational**: Maintain relational integrity in the results
-
 ## Query Operators
 
 DataJoint provides several fundamental query operators:
@@ -894,21 +894,34 @@ The restriction operator filters rows based on conditions:
 ```
 
 2. **Restriction by a Sequence**
+When a query is further restricted by a sequence (e.g. a list) of conditions, the conditions are applied by logical adjunction, i.e. *logical or*.
 ```python
-# Find students with specific IDs
-(Student & [1001, 1002, 1003]).fetch()
+# List young students and those who are from outside California
+Student & ["home_state<>'CA'", "date_of_birth >= '2010-01-01'"]
+```
+
+
+To apply conditions by logical conjunction (*logical and*), the conditions are either applied succesively or are applied using the special `dj.AndList` sequence.
+```python
+# List young students from outside California
+Student & dj.AndList(["home_state<>'CA'", "date_of_birth >= '2010-01-01'"])
+# equivalent to
+Student & "home_state<>'CA'" & "date_of_birth >= '2010-01-01'"
 ```
 
 3. **Restriction by a Subquery**
 ```python
 # Find students who have taken a specific course
-(Student & (StudentCourse & "course_id = 'CS101'")).fetch()
+(Student & (Enroll & "course_id = 'CS101'")
 ```
 
 4. **Restriction by `dj.Top`**
 ```python
-# Get the first 5 students
-(Student & dj.Top(5)).fetch()
+# Get the first 5 students (in undefined order)
+Student & dj.Top(5)
+
+# Get the youngest 5 students
+Student & dj.Top(5, order_by="date_of_birth DESC")
 ```
 
 ### Projection
@@ -944,12 +957,15 @@ Union combines rows from multiple tables with compatible schemas:
 
 ### Universal Sets `dj.U()`
 
-Universal sets represent all possible combinations of attributes:
+Universal sets represent all possible combinations of values of a set of attributes.
+From this perspective, they are symbolic representations rather than actual results:
+They can be useful in queries but can never be queried by themselves.
 
 ```python
-# Get all possible combinations of departments and years
-(Department * dj.U('year')).fetch()
+# Get all birth years for texas students
+dj.U('year') & (Student & {"state": "Texas"}).proj(year="YEAR(date_of_birth")
 ```
+In this case, `dj.U('year')` is the set of all possible values (of any type) for a field named "year" but when restricted by another query, it provides a well-defined finite result.
 
 ## Algebraic Closure
 
