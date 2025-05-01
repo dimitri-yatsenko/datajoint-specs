@@ -82,7 +82,7 @@ The platform provides:
 - **Security and compliance**
 
 The **DataJoint Platform** is **flexible** and can be deployed **on-premise, in the cloud, or in a hybrid infrastructure**, ensuring **scalability, reliability, and security** for large-scale scientific workflows.
-While the platform’s design is proprietary, researchers maintain **full ownership and control** over their data and pipeline code, ensuring compliance with **data residency and licensing requirements**, whether running their own infrastructure or leveraging the DataJoint Platform.
+While the platform's design is proprietary, researchers maintain **full ownership and control** over their data and pipeline code, ensuring compliance with **data residency and licensing requirements**, whether running their own infrastructure or leveraging the DataJoint Platform.
 
 ---
 
@@ -160,7 +160,8 @@ Since DataJoint uses relational database backends, all data can be accessed thro
 A **data pipeline** supporting a scientific study is  a structured system for managing **scientific data, dependencies, computations, and execution workflows**.
 It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing*
 . In addition to handling **computational dependencies and job execution**, a pipeline may also include **graphical interfaces for data navigation, analysis, and collaboration**.
-## **Operational Components**
+
+## Operational Components
 
 A fully functional DataJoint pipeline consists of the following key components:
 
@@ -313,7 +314,7 @@ Each table definition consists of:
 - **Table name** – Defined as a class in Python and translated to a database table name.
 - **Table tier** – Specifies the table's role in the pipeline.
 - **Primary key** – Defines the unique identifier for each row.
-- **Attributes** – Columns specifying the table’s data structure.
+- **Attributes** – Columns specifying the table's data structure.
 - **Foreign keys** – Define dependencies on upstream tables.
 - **Indexes** – Optimize queries and enforce constraints.
 
@@ -426,7 +427,7 @@ class ChemicalElement(dj.Lookup):
 DataJoint supports a **small set of fundamental types** for storing attributes in database columns.
 These types **abstract and simplify** the underlying SQL data types provided by relational backends ([PostgreSQL](https://www.postgresql.org/docs/current/datatype.html) and [MySQL](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)) to align with the needs of **data science and experimental workflows**.
 
-This specification **prioritizes intuitive type names** (e.g., `uint8` instead of SQL’s `tinyint unsigned`) to improve usability for **scientific applications**.
+This specification **prioritizes intuitive type names** (e.g., `uint8` instead of SQL's `tinyint unsigned`) to improve usability for **scientific applications**.
 
 ### **Core Attribute Types**
 
@@ -720,27 +721,31 @@ DataJoint offers tools to restore the database from the file repository using th
 
 -------
 # Data Operations
-Data operations atler the state of the data stored in the database.
 
-Records (rows) in a stored table are considered immutable: each is inserted or deleted as a whole using `insert` and `delete` operators.
+Data operations alter the state of the data stored in the database.
 
-However, to allow correcting erros in existing data, the `update1` operator is provided to perform deliberate corrections in the data by changing the values of individual attributes.
+Records (rows) in a stored table are considered immutable: each is inserted or deleted as a whole using `insert` and `delete` operators.
 
-Insert comes in two flavors: `insert1` for individual records and `insert` for batches of records.
+However, to allow correcting errors in existing data, the `update1` operator is provided to perform deliberate corrections in the data by changing the values of individual attributes.
+
+Insert comes in three flavors:
+1. `insert1(record)` for inserting an individual record
+2. `insert(sequence)` for batches of records
+3. `insert(query_expression)` for inserting query results
 
 ## Insert1
 
-The method `Table.insert1(rec)`inserts one record `rec` into one table.
+The method `Table.insert1(rec)` inserts one record `rec` into one table.
 
-The record to be inserted must be fully formed and comply with all data integrity constaints:
+The record to be inserted must be fully formed and comply with all data integrity constraints:
 * All attributes must be of the right data type, i.e. must meet attribute domain constraints specified in the table definition.
 * The record must provide values for all required fields.
-* Unique constraints must be satisfied (no duplicate value)
-* Referential integrity must be uphead (foreign keys must reference existing records).
+* Unique constraints must be satisfied (no duplicate values).
+* Referential integrity must be upheld (foreign keys must reference existing records).
 
-If the record violates any constraints, ensuring atomicity—either the record is successfully inserted, or nothing is changed.
+If the record violates any constraints, the operation fails, ensuring atomicity—either the record is successfully inserted, or nothing is changed.
 
-A record value may be specified as an ordered tuple, in which case all fields must be present or as a mapping (dict), in which case optional fields may be omitted.
+A record value may be specified as an ordered tuple, in which case all fields must be present, or as a mapping (dict), in which case optional fields may be omitted.
 
 Example:
 ```python
@@ -759,10 +764,9 @@ Student.insert1({
 })
 ```
 
-
 ## Batch Insert
 The method `Table.insert(seq)` inserts a sequence of records.
-In this case, entire sequence of records is inserted in a single transacation: if a single records fails to insert, the entire sequence fails.
+In this case, the entire sequence of records is inserted in a single transaction: if a single record fails to insert, the entire sequence fails.
 This makes the `insert` operator atomic.
 
 Example:
@@ -779,13 +783,12 @@ Student.insert([
 ])
 ```
 
-
 ## Query Insert
-The method `Table.insert(query_expression)` to insert the result of a [query expression](#query-expressions).
+The method `Table.insert(query_expression)` inserts the result of a [query expression](#query-expressions).
 In this case, the query expression is treated similarly to the inserted sequence in batch insert and must meet the same requirements.
 
 The remarkable property of query insert is that no data is fetched to the client.
-Both the source query expression and the subsequent insert are performed server-side without sendig data to the client.
+Both the source query expression and the subsequent insert are performed server-side as an atomic transcation without sending data to the client.
 Both the query and the insert are performed as an atomic transaction.
 
 Example:
@@ -795,7 +798,7 @@ StudentMajor.insert(Department.proj() * Student.proj())
 ```
 
 ## Delete
-The delete operation removes records from a stored tables and cascades to all dependent records.
+The delete operation removes records from stored tables with cascading effects to all dependent records.
 Delete is often used in combination with the restriction operator to specify records to delete.
 
 Example:
@@ -809,7 +812,9 @@ Student.delete()
 
 ## Update
 Update is used to change the values of secondary attributes in one record only.
-The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide the complete value of the primary key for the updated record and the new values for all updated attributes.
+The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide:
+1. The complete value of the primary key for the updated record
+2. The new values for all updated attributes
 
 Example:
 ```python
@@ -825,86 +830,156 @@ Note that this formulation is incapable of updating primary key attributes.
 The record must already exist and only secondary attributes will be updated.
 Modifying the primary key requires deleting and reinserting the record.
 
-
 ## Effect of Foreign Key Constraints
-Foreign keys enforce referential integrity, which is enforced by restricting how insert, delete, and update1 operations behave.
+Foreign keys enforce referential integrity, which affects how insert, delete, and update1 operations behave:
 
 * **Insert**: When using `insert` or `insert1`, foreign key constraints require that referenced records exist in the parent table before dependent records can be added.
-This ensures that no orphaned entries are created.
-If a foreign key references a non-existent record, the insertion will fail.
-This rule helps maintain consistency by preventing invalid references in dependent tables.
+  This ensures that no orphaned entries are created.
+  If a foreign key references a non-existent record, the insertion will fail.
+  This rule helps maintain consistency by preventing invalid references in dependent tables.
 
 * **Delete**: On deletion (`delete`), foreign keys enforce cascading behavior, meaning that deleting a referenced record automatically removes all dependent records downstream.
-This prevents data inconsistencies by ensuring that no dependent records exist without their required parent records.
+  This prevents data inconsistencies by ensuring that no dependent records exist without their required parent records.
 
 * **Update**: For updates, `update1` modifies secondary attributes of a single record. An update can fail if the secondary attribute is part of a foreign key and no matching record is found in the parent table.
 
-* **Drop**: When a table is dropped from the schema, all dependent tables will be dropped as well. DataJoint client provides a full list of tables to be dropped before executing the schema update.
+* **Drop**: When a table is dropped from the schema, all dependent tables will be dropped as well. The DataJoint client provides a full list of tables to be dropped before executing the schema update.
 
 ------------
 # Queries
 
-A query is a function on the data performed on the server side, yieldig a derived table.
-The results
+A query is a function on the data performed on the server side, yielding a derived table. The results are transferred to the client through fetch operations.
 
 ## Fetch
 
-Fetching is the process of executing the qeury transferring query results from the server to the client. The fetch operation retrieves query output in various formats, typically as dictionaries, lists, or NumPy arrays.
+Fetching is the process of executing the query and transferring query results from the server to the client. The fetch operation retrieves query output in various formats, typically as dictionaries, lists, or NumPy arrays.
 
 - `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of dictionaries.
 - `fetch1()`: Ensures that only a single row is returned and raises an error if multiple rows are present. The result is typically a dictionary.
 
+### Iteration
+
+DataJoint query objects are iterable, allowing you to process results row by row within standard Python loops. This approach is particularly memory-efficient for large datasets, as it typically fetches data incrementally (row by row or in small batches) rather than loading the entire result set into memory at once.
+
+Each iteration yields a dictionary representing a single row from the query result.
+
+Example:
+
+
+
+
+
+
 ## Query Expressions
 
+A query expression is a formal definition of a query expressed with query operators acting on input tables to define a new output table. Query expressions are:
+
+1. **Composable**: Can be combined to form more complex queries
+2. **Declarative**: Describe what data to retrieve rather than how to retrieve it
+3. **Relational**: Maintain relational integrity in the results
 
 ## Query Operators
 
-## Restriction
+DataJoint provides several fundamental query operators:
+
+### Restriction
 `A & cond` and `A - cond`
 
-### Restriction by a Condition
+The restriction operator filters rows based on conditions:
 
-### Restriction by a Sequence
-- by AndList
+1. **Restriction by a Condition**
+```python
+# Find all students from California
+(Student & "home_state = 'CA'").fetch()
+```
 
-### Restriction by a Subquery
+2. **Restriction by a Sequence**
+```python
+# Find students with specific IDs
+(Student & [1001, 1002, 1003]).fetch()
+```
 
-### Restriction by `dj.Top`
+3. **Restriction by a Subquery**
+```python
+# Find students who have taken a specific course
+(Student & (StudentCourse & "course_id = 'CS101'")).fetch()
+```
 
-## Projection
+4. **Restriction by `dj.Top`**
+```python
+# Get the first 5 students
+(Student & dj.Top(5)).fetch()
+```
+
+### Projection
 `A.proj(...)`
 
-## Join `A * B`
+Projection selects specific attributes and can rename them:
 
-## Union `A + B`
+```python
+# Get student names and emails
+Student.proj('first_name', 'last_name', 'email').fetch()
 
-## Universal Sets `dj.U()`
+# Rename attributes during projection
+Student.proj(first='first_name', last='last_name').fetch()
+```
 
+### Join `A * B`
+
+Join combines tables based on matching attributes:
+
+```python
+# Join students with their courses
+(Student * StudentCourse).fetch()
+```
+
+### Union `A + B`
+
+Union combines rows from multiple tables with compatible schemas:
+
+```python
+# Combine current and former students
+(CurrentStudent + FormerStudent).fetch()
+```
+
+### Universal Sets `dj.U()`
+
+Universal sets represent all possible combinations of attributes:
+
+```python
+# Get all possible combinations of departments and years
+(Department * dj.U('year')).fetch()
+```
 
 ## Algebraic Closure
 
-In DataJoint, the operands and the output of any query operator are well-formed relational tables having named columns of known data types and a well-defined primary key.
-This property is described as as *algebraic closure*, which is essential for constructing complex queries from simple ones.
+In DataJoint, the operands and the output of any query operator are well-formed relational tables having named columns of known data types and a well-defined primary key. This property is described as algebraic closure, which is essential for constructing complex queries from simple ones.
 
+This ensures that any combination of joins, restrictions, projections, and other operations results in a valid table that can be used as input for further operations:
 
-from a query expression is  produce tables that  in DataJoint always yield new tables, which can be further queried without any loss of relational integrity. This ensures that any combination of joins, restrictions, projections, and other operations results in a valid table that can be used as input for further operations.
-
-- **Closure under Join (**``**)**: The result of a join between two tables is always a table that can be queried further.
-- **Closure under Restriction (**``**)**: Applying a restriction to a table results in a new table that maintains its relational properties.
-- **Closure under Projection (**``**)**: Projection creates a new table with a subset of attributes while preserving integrity.
+- **Closure under Join (`*`)**: The result of a join between two tables is always a table that can be queried further.
+- **Closure under Restriction (`&`)**: Applying a restriction to a table results in a new table that maintains its relational properties.
+- **Closure under Projection (`.proj()`)**: Projection creates a new table with a subset of attributes while preserving integrity.
 - **Closure under Aggregation**: Aggregation operations such as `group_by` and computed statistics yield tables that can be used in subsequent queries.
 
-This property enables DataJoint to support composable and declarative data queries in a fully relational manner.
-
 ## Semantic Match
-For binary operators in becomes necessary to match rows in one
 
-In binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), must relate rows in table `A` to rows in table `B`.
+For binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), it becomes necessary to match rows in one table to rows in another table.
 
-The match is performed as the equality condition on all pairs of attributes that (a) have the same name in both `A` and `B` and trace to the same attribute definition through an uninterrupted chain of foreign keys.
+The match is performed as the equality condition on all pairs of attributes that:
+1. Have the same name in both `A` and `B`
+2. Trace to the same attribute definition through an uninterrupted chain of foreign keys
 
 If the tables `A` and `B` have attributes with the same names but do not trace their lineage to the same original definition, the binary operators will be invalid. Users must remove or rename the colliding attributes before performing the binary operation.
 
+Example:
+```python
+# Valid join - attributes trace to same definition
+(Student * StudentCourse).fetch()  # student_id matches
+
+# Invalid join - attributes have same name but different definitions
+(Student * Course).fetch()  # Error: ambiguous name 'name'
+```
 
 -----------
 # Computation
@@ -996,7 +1071,7 @@ else:
 ## Key Source: Determining What Needs to Be Computed
 The **key source** defines which entries **require computation**.
 * It is automatically determined by DataJoint.
-* It is formed as the join of all tables referenced by foreign keys in the table’s primary key.
+* It is formed as the join of all tables referenced by foreign keys in the table's primary key.
 * Existing computed entries are excluded, ensuring only new computations are performed
 
 ### Example: Understanding Key Source
