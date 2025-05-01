@@ -864,11 +864,11 @@ DataJoint query objects are iterable, allowing you to process results row by row
 Each iteration yields a dictionary representing a single row from the query result.
 
 Example:
-
-
-
-
-
+```python
+# print the records of Texas students
+for rec in (Student & {"state": "TX"}):
+    print(rec)
+```
 
 ## Query Expressions
 
@@ -953,14 +953,14 @@ Universal sets represent all possible combinations of attributes:
 
 ## Algebraic Closure
 
-In DataJoint, the operands and the output of any query operator are well-formed relational tables having named columns of known data types and a well-defined primary key. This property is described as algebraic closure, which is essential for constructing complex queries from simple ones.
+In DataJoint, the operands and the output of any query operator are well-formed relational tables having named columns of known data types and a well-defined primary key. This property is described as *algebraic closure*, which is essential for constructing complex queries from simple ones.
 
 This ensures that any combination of joins, restrictions, projections, and other operations results in a valid table that can be used as input for further operations:
 
 - **Closure under Join (`*`)**: The result of a join between two tables is always a table that can be queried further.
 - **Closure under Restriction (`&`)**: Applying a restriction to a table results in a new table that maintains its relational properties.
-- **Closure under Projection (`.proj()`)**: Projection creates a new table with a subset of attributes while preserving integrity.
-- **Closure under Aggregation**: Aggregation operations such as `group_by` and computed statistics yield tables that can be used in subsequent queries.
+- **Closure under Projection (`.proj()`)**: Projection creates a new table with a new set of attributes while preserving integrity.
+- **Closure under Aggregation**: Aggregation operations yield tables that can be used in subsequent queries.
 
 ## Semantic Match
 
@@ -974,12 +974,14 @@ If the tables `A` and `B` have attributes with the same names but do not trace t
 
 Example:
 ```python
-# Valid join - attributes trace to same definition
+# Valid join - common attributes trace to same definition
 (Student * StudentCourse).fetch()  # student_id matches
 
 # Invalid join - attributes have same name but different definitions
 (Student * Course).fetch()  # Error: ambiguous name 'name'
 ```
+
+To resolve semantic matching, it may become necessary to first apply the projection operation to one or both operands in order to resolve semantic mismatch.
 
 -----------
 # Computation
