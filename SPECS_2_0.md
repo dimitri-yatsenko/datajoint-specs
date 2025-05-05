@@ -26,63 +26,73 @@ By following the **DataJoint Specs**, users and developers can:
 
 ## Purpose of DataJoint
 
-**DataJoint is a framework that transforms relational databases into computational engines for scientific workflows.**
+**DataJoint provides scientists with enhanced capabilities to design, implement, and manage the data operations underpinning their research**.
 
-At its core, **DataJoint extends the traditional relational data model into a _computational database_**, where some tables contain raw input data, while others define computations and store their results.
-This makes it possible to express entire scientific workflows—data acquisition, transformation, analysis—as structured, executable pipelines directly within the database.
+At its core, **DataJoint treats data and computations jointly within a formal _computational database_**, unifying data structures and analysis code. It extends the traditional relational data model so that some tables contain raw or curated input data, while others define computations and store their results. This makes it possible to precisely construct and express entire scientific workflows—data acquisition, transformation, analysis—as structured, executable pipelines directly within the database.
 
-In this architecture, the database becomes more than a storage system.
-It becomes a **living pipeline** that encodes the logic and lineage of scientific work:
+In this architecture, the database becomes more than just a storage system; it evolves into a **living pipeline** that encodes the logic and lineage of scientific work:
 
-- **Structured**: with explicit schema and clear data relationships  
-- **Scalable**: supporting high-throughput, high-dimensional experimental data  
-- **Reproducible**: with every step recorded, auditable, and rerunnable  
+* **Structured**: with explicit schema and clear data relationships
+* **Scalable**: supporting high-throughput, high-dimensional experimental data
+* **Reproducible**: with every step recorded, auditable, and rerunnable
 
 DataJoint maintains the rigor of relational databases—ensuring **data integrity, ACID-compliant transactions, and declarative query logic**—but extends their scope to meet the demands of modern science:
 
-- **Computations become first-class citizens** in the schema, tied to data via dependency graphs  
-- Complex scientific data types (e.g., multidimensional arrays, images, time series) are modeled and managed natively  
-- Data pipelines are encoded explicitly, enabling automation, parallelism, and long-term reproducibility
+* **Computations become first-class citizens** in the schema, tied to data via dependency graphs
+* Complex scientific data types (e.g., multidimensional arrays, images, time series) are modeled and managed natively
+* Data pipelines are encoded explicitly, enabling automation, parallelism, and long-term reproducibility
 
-This opens up powerful new capabilities for scientific teams: collaborative development of shared workflows, automated processing at scale, and systematic management of data provenance.
-
-Just as spreadsheet formulas allow for structured, cascading transformations of data, **DataJoint enables scientists to define and automate sophisticated data workflows**—but at the scale of institutions, consortia, and national data infrastructures.
+This structured approach enables researchers to pursue ambitious goals, achieve engineered reliability, and build, refine, and share robust workflow systems.
 
 By unifying computational logic and relational data modeling, **DataJoint provides a foundation for building high-integrity, high-performance scientific data ecosystems.**
 
-## Open-Source Development
+## Open-Source Development and the DataJoint Standard
 
-This document specifies DataJoint as an open standard DataJoint as an open standard.
-The implementation of many of its components is conducted in open source, although some component may be developed privately while still claiming compliance to this standard.
+DataJoint is defined by an **open standard** designed to ensure interoperability and compatibility across different implementations and scientific workflows.
+Aligned with Open Science principles, this standard focuses on the **core components** that form the foundation of any DataJoint pipeline, often visualized as the inner circle in the architectural diagram below.
 
-The reference implementation is centered around [DataJoint-Python](https://github.com/datajont/datajoint-python), which implements a **free, Python-based library and API** that enables scientists to design, manage, and query relational data pipelines.
-It provides tools for **defining schemas, tracking dependencies, and integrating computations**.
+![DataJoint Architecture Diagram](figures/dj-platform.jpg)
+*Diagram illustrating the core components defined by the DataJoint standard (inner circle) and the broader ecosystem integration points (outer circle).*
 
-Setting up a fully operational scientific pipeline requires configuring **databases, object storage, compute infrastructure, and workflow automation**.
+These **core components**, covered by these specifications, include:
 
-While the open-source framework defines **computational data pipelines**, it does **not orchestrate computations or schedule jobs**. Users may:
-- Implement their own orchestration processes or scripts for manual execution.
-- Integrate with **external workflow management systems** (e.g., Apache Airflow, Nextflow) for job scheduling and execution.
-- Use DataJoint's platform for a fully managed service.
+* **Relational Database (e.g., MySQL, PostgreSQL):** Serves as the pipeline's metadata store and system of record. It ensures structured tabular storage for experiment data, metadata, and results, enforces data integrity and traceability via foreign-key relationships, and maintains consistency through ACID-compliant transactions.
+* **Computational Dependencies:** The encoded logic defining data flow and linking data stages to specific analysis code within the database structure, enabling automation and reproducibility. This transforms the database into a computational engine.
+* **Code Repository (e.g., Git):** A dedicated version-controlled repository housing the pipeline definitions (schemas, table classes), analysis code, configuration settings, and potentially containerized environments. It serves as the central hub for managing pipeline development, ensuring collaborative development and reproducibility by linking computations to specific code versions.
+* **Object Store (Optional but common; e.g., Filesystem, S3, GCS, Azure Blob):** A scalable storage backend for managing large scientific datasets (e.g., images, neural recordings, videos) referenced in the relational database but stored externally. This hybrid storage model keeps the database efficient while enabling management of large data objects, often using structured key-naming conventions.
 
-Additionally, pipeline functionality can be **enhanced** with:
-- **Graphical interfaces and dashboards** for interactive data exploration, analysis, and visualization.
-- **Integrations with external information systems**, such as **electronic lab notebooks (ELNs), LIMS, EMRs, instruments, and data acquisition systems**.
+These **DataJoint Specs** primarily define this **core framework** and its principles, ensuring that pipelines built using different tools or platforms remain consistent and interoperable. Adherence to this standard is fundamental for achieving data integrity, automated computation, reproducibility, collaboration, and integrated multi-modal data handling.
 
+The reference implementation for this standard is the open-source **DataJoint-Python library** [`datajoint-python`](https://github.com/datajoint/datajoint-python), available under the [MIT license](https://github.com/datajoint/datajoint-python/discussions/1235). It provides the essential tools for research teams to build, manage, and integrate their own pipelines using the DataJoint standard.
 
-## DataJoint Platform
+While the standard defines the core, a fully operational scientific pipeline often integrates with a broader **ecosystem** (e.g., specific instruments, ELNs, job orchestrators, visualization tools – the outer circle in the diagram). These **ecosystem integration points**, such as:
 
-For research teams seeking a **fully managed solution**, [DataJoint Inc.](https://datajoint.com) offers its **Data Operations Platform for Scientific Research**—a **turnkey infrastructure** built around the open-source framework.
+* **Job Orchestration:** Systems for scheduling, executing, distributing, and monitoring computational jobs (e.g., DataJoint Compute Service, custom scripts, Airflow, SLURM, Kubernetes).
+* **Web Interfaces, APIs, and System Integrations:** Tools for interactive data exploration, visualization, data entry (e.g., custom dashboards, JupyterHub), and integration with external systems (ELNs, LIMS, instruments).
 
-The platform provides:
-- **Hosted databases**
-- **Scalable object storage**
-- **Automated computation**
-- **Web-based tools** for seamless data exploration and collaboration
-- **Security and compliance**
+build upon the core framework but are generally **outside the scope of the base DataJoint specification**, allowing flexibility and choice in implementation. It is important to note that specific commercial offerings, such as the **DataJoint Platform described in the next section, while built upon this open standard, include additional integrated components, proprietary features, and services (like managed orchestration or web interfaces) that are *not* covered by these specifications.**
 
-The **DataJoint Platform** is **flexible** and can be deployed **on-premise, in the cloud, or in a hybrid infrastructure**, ensuring **scalability, reliability, and security** for large-scale scientific workflows.
-While the platform's design is proprietary, researchers maintain **full ownership and control** over their data and pipeline code, ensuring compliance with **data residency and licensing requirements**, whether running their own infrastructure or leveraging the DataJoint Platform.
+## The DataJoint Platform (not covered by the specs or open standard)
+
+For research teams seeking a **fully managed, turnkey solution**, [DataJoint Inc.](https://datajoint.com) offers its **Data Operations Platform for Scientific Research**.
+This commercial platform is built *upon* the **open-source core and standards** described previously but adds integrated components and services to simplify deployment and reduce operational overhead.
+
+Specific commercial offerings, such as the **DataJoint Platform described in the next section, while built upon this open standard, include additional integrated components, proprietary features, and services that are *not* covered by these specifications.**
+
+The platform provides a cohesive infrastructure designed to enhance operational excellence in data-intensive research, typically including:
+
+* **Hosted and managed databases**
+* **Integrated, scalable object storage**
+* **Automated computation and job orchestration services**
+* **Web-based tools** for data exploration, visualization, and collaboration
+* **Enterprise support, consulting, and training**
+* **Pre-integrated functional components** (e.g., standard pipelines via the [DataJoint Elements](https://docs.datajoint.com/elements/) program)
+* **Security, compliance, and access control management**
+
+The **DataJoint Platform** aims to provide a **reliable, scalable, and secure environment** for large-scale scientific workflows, deployable **on-premise, in the cloud, or in a hybrid infrastructure**.
+
+Crucially, while leveraging the platform's managed services, research teams **retain full ownership and control over their pipeline code and scientific data**.
+This ensures that choosing between a DIY approach with the open-source tools or partnering with DataJoint Inc. for the commercial platform maintains data sovereignty and allows for flexibility and interoperability, grounded in the common DataJoint standard.
 
 ---
 
@@ -160,91 +170,6 @@ Since DataJoint uses relational database backends, all data can be accessed thro
 A **data pipeline** supporting a scientific study is  a structured system for managing **scientific data, dependencies, computations, and execution workflows**.
 It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing*
 . In addition to handling **computational dependencies and job execution**, a pipeline may also include **graphical interfaces for data navigation, analysis, and collaboration**.
-
-## Operational Components
-
-A fully functional DataJoint pipeline consists of the following key components:
-
-![DataJoint Platform](figures/dj-platform.png) 
-
-### 1. Code Repository
-A **dedicated version-controlled repository** (e.g., **GitHub, GitLab, Bitbucket**, or a self-hosted `git` instance) serves as the **central hub** for managing pipeline development and execution.
-It stores:
-- **Pipeline definitions** – schemas, table structures, and computational dependencies, relying on the DataJoint Client API.
-- **Configuration settings** – database, storage, and execution parameters.
-- **Access control policies** – user permissions and security settings.
-- **Containerized environments** – reproducible execution setups.
-- **Quality assurance** – unit tests, integration tests, and validation scripts.
-- **Automations** – deployment scripts, CI/CD pipelines, and operational workflows.
-
-Version control ensures **collaborative development, reproducibility, and historical tracking**. Research teams manage **reviews, merges, and updates** to maintain an evolving yet stable pipeline.
-
-### 2. Relational Database
-A **relational database** (e.g., **MySQL, PostgreSQL**) serves as the **pipeline's metadata store**, ensuring:
-- **Structured tabular storage** – for experiment data, metadata, and results.
-- **Foreign-key relationships** – enforcing **data integrity and traceability**.
-- **ACID-compliant transactions** – maintaining consistency in data updates.
-
-The **database acts as the system of record** (authoritative source of truth, defining dependencies, data provenance, and analysis results.
-
-- **Database administrators** configure access controls for security and compliance.
-- The **DataJoint Platform** provides **role-based access control (RBAC)** to efficiently manage permissions.
-
-### 3. Object Store (Optional)
-A **scalable storage backend** is required to manage **large scientific datasets** referenced in the relational database but stored externally.
-
-**Supported Storage Backends:**
-- **Local storage** – POSIX-compliant file systems (e.g., NFS, SMB).
-- **Cloud-based object storage** – (e.g., Amazon S3, Google Cloud Storage, Azure Blob, MinIO).
-- **Hybrid storage** – Combining local and cloud storage for flexibility.
-
-Object storage enables **efficient management of unstructured data** (e.g., images, neural recordings, time series) while keeping metadata structured in the relational database.
-
-- **Access control for stored objects is synchronized with database permissions**, ensuring consistent security policies.
-- The **DataJoint Platform** integrates databases with object storage for a **seamless user experience**.
-
-
-### 4. Job Orchestration (Optional)
-Automated job orchestration streamlines computational workflows, but **smaller, self-hosted projects** may rely on **manual execution** or **custom scripts**.
-
-For **automated execution**, a **job orchestration system** can:
-- **Schedule and execute computations** based on data dependencies.
-- **Ensure correct execution order** of dependent tasks.
-- **Support distributed or parallel processing** for scalability.
-
-**Orchestration Options:**
-- **DataJoint Compute Service** – Fully integrated job execution system in the DataJoint Platform.
-- **Self-managed custom solutions** – User-defined execution workflows.
-- **Workflow automation tools** – Apache Airflow, Prefect, Dagster.
-- **Distributed job schedulers** – Kubernetes, SLURM, AWS Batch.
-
-Orchestration enables **auditability, observability, and traceability**, ensuring **reproducibility and compliance** with scientific standards. It also supports **integration with HPC clusters, private clouds, and other computational infrastructures**.
-
-
-### 5. Web Interfaces, APIs, and System Integrations (Optional)
-Web interfaces and APIs facilitate **interactive data exploration, structured data entry, and integrations with external systems**.
-
-**System Integrations:**
-Many research projects benefit from integrating DataJoint pipelines with:
-- **Electronic Lab Notebooks (ELNs)**
-- **Lab Information Management Systems (LIMS)**
-- **Electronic Medical Records (EMR)**
-- **Colony Management & Genotyping Systems**
-- **Data Acquisition & Instrumentation Systems**
-
-**Web Interfaces for Enhanced Usability**
-- **Data entry, visualization, and exploration** (e.g., dashboards).
-- **Structured metadata querying and filtering**.
-- **Collaboration tools** for shared datasets.
-- **Pipeline monitoring and job execution status tracking**.
-
-**Available Interfaces:**
-- **Custom-built dashboards** – Using frameworks like **Streamlit, Dash, or Panel**.
-- **Jupyter Notebooks** – Interactive scripting environments.
-- **DataJoint Platform Web Tools** – Plotly Dash-based dashboards for data entry and visualization, and Jupyter Notebooks with configurable compute instances.
-
-----
-
 
 ## **Pipeline ≡ Python Package**
 
