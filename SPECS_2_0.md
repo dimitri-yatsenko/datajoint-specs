@@ -56,28 +56,27 @@ Aligned with Open Science principles, this standard focuses on the **core compon
 
 These **core components**, covered by these specifications, include:
 
+* **Code Repository (e.g., Git):** A dedicated version-controlled repository housing the pipeline definitions (schemas, table classes), analysis code, configuration settings, and potentially containerized environments. It serves as the central hub for managing pipeline development, ensuring collaborative development and reproducibility by linking computations to specific code versions.
 * **Relational Database (e.g., MySQL, PostgreSQL):** Serves as the pipeline's metadata store and system of record. It ensures structured tabular storage for experiment data, metadata, and results, enforces data integrity and traceability via foreign-key relationships, and maintains consistency through ACID-compliant transactions.
 * **Computational Dependencies:** The encoded logic defining data flow and linking data stages to specific analysis code within the database structure, enabling automation and reproducibility. This transforms the database into a computational engine.
-* **Code Repository (e.g., Git):** A dedicated version-controlled repository housing the pipeline definitions (schemas, table classes), analysis code, configuration settings, and potentially containerized environments. It serves as the central hub for managing pipeline development, ensuring collaborative development and reproducibility by linking computations to specific code versions.
 * **Object Store (Optional but common; e.g., Filesystem, S3, GCS, Azure Blob):** A scalable storage backend for managing large scientific datasets (e.g., images, neural recordings, videos) referenced in the relational database but stored externally. This hybrid storage model keeps the database efficient while enabling management of large data objects, often using structured key-naming conventions.
 
 These **DataJoint Specs** primarily define this **core framework** and its principles, ensuring that pipelines built using different tools or platforms remain consistent and interoperable. Adherence to this standard is fundamental for achieving data integrity, automated computation, reproducibility, collaboration, and integrated multi-modal data handling.
 
 The reference implementation for this standard is the open-source **DataJoint-Python library** [`datajoint-python`](https://github.com/datajoint/datajoint-python), available under the [MIT license](https://github.com/datajoint/datajoint-python/discussions/1235). It provides the essential tools for research teams to build, manage, and integrate their own pipelines using the DataJoint standard.
 
-While the standard defines the core, a fully operational scientific pipeline often integrates with a broader **ecosystem** (e.g., specific instruments, ELNs, job orchestrators, visualization tools – the outer circle in the diagram). These **ecosystem integration points**, such as:
+While the standard defines the core, a fully operational scientific pipeline often integrates with a broader **ecosystem** (e.g., specific instruments, ELNs, job orchestrators, visualization tools – the outer circle in the diagram). These **ecosystem integration points** may include:
 
 * **Job Orchestration:** Systems for scheduling, executing, distributing, and monitoring computational jobs (e.g., DataJoint Compute Service, custom scripts, Airflow, SLURM, Kubernetes).
 * **Web Interfaces, APIs, and System Integrations:** Tools for interactive data exploration, visualization, data entry (e.g., custom dashboards, JupyterHub), and integration with external systems (ELNs, LIMS, instruments).
 
-build upon the core framework but are generally **outside the scope of the base DataJoint specification**, allowing flexibility and choice in implementation. It is important to note that specific commercial offerings, such as the **DataJoint Platform described in the next section, while built upon this open standard, include additional integrated components, proprietary features, and services (like managed orchestration or web interfaces) that are *not* covered by these specifications.**
+While these extensions build upon the core framework,  they are generally **outside the scope of the base DataJoint specification**, allowing flexibility and choice in implementation.
+Various DIY implementations and DataJoint't commercial offerings may be diverge in implementing such extensions.
 
 ## The DataJoint Platform (not covered by the specs or open standard)
 
 For research teams seeking a **fully managed, turnkey solution**, [DataJoint Inc.](https://datajoint.com) offers its **Data Operations Platform for Scientific Research**.
 This commercial platform is built *upon* the **open-source core and standards** described previously but adds integrated components and services to simplify deployment and reduce operational overhead.
-
-Specific commercial offerings, such as the **DataJoint Platform described in the next section, while built upon this open standard, include additional integrated components, proprietary features, and services that are *not* covered by these specifications.**
 
 The platform provides a cohesive infrastructure designed to enhance operational excellence in data-intensive research, typically including:
 
@@ -85,6 +84,7 @@ The platform provides a cohesive infrastructure designed to enhance operational 
 * **Integrated, scalable object storage**
 * **Automated computation and job orchestration services**
 * **Web-based tools** for data exploration, visualization, and collaboration
+* **Integration with AI Assistants / LLM agents** to potentially assist with tasks like querying, analysis suggestions, or documentation.
 * **Enterprise support, consulting, and training**
 * **Pre-integrated functional components** (e.g., standard pipelines via the [DataJoint Elements](https://docs.datajoint.com/elements/) program)
 * **Security, compliance, and access control management**
@@ -96,31 +96,47 @@ This ensures that choosing between a DIY approach with the open-source tools or 
 
 ---
 
-## Key Objectives
-- **Relational foundation** — Built upon a rigorous relational database model.
-- **Data integrity** — Enforces constraints ensuring consistency, correctness, and validity.
-- **ACID transactions** — Supports atomic, consistent, isolated, and durable database operations.
-- **Scientific programming interface** — Allows schema definitions, data manipulations, and queries directly from languages like Python.
-- **Scalability** — Efficiently manages large scientific datasets and complex data types.
-- **Embedded computation** — Explicitly integrates computations within the database structure.
-- **Extensibility** — Supports complex and custom data structures beyond standard relational types.
+## Key Objectives and Design Principles
+
+The DataJoint standard is designed around the following key objectives and principles to support robust and scalable scientific data workflows:
+
+* **Unified Data and Computation:** Extend the relational model to a *computational database*, seamlessly integrating data storage with computational logic and dependencies.
+* **Data Integrity and Reliability:** Enforce data validity, consistency, and correctness through rigorous relational database principles, including primary keys, foreign keys, constraints, and ACID-compliant transactions.
+* **Guaranteed Reproducibility:** Ensure computations are traceable and reproducible by design, linking results to the exact data, parameters, and code versions used in their generation[.
+* **Automation of Computation:** Enable intelligent and automated execution of computational steps based on data availability and predefined dependencies.
+* **Seamless Collaboration:** Provide a structured, shared "single source of truth" through a common database schema, facilitating concurrent work and consistent data access for teams.
+* **Powerful and Flexible Querying:** Leverage the relational model to enable sophisticated and efficient querying of complex datasets based on any recorded attribute.
+* **Integrated Multi-Modal Data Handling:** Natively support the management of hybrid datasets, linking structured metadata in the database with large, externally stored data objects (e.g., images, time series, videos).
+* **Scientific Programming Interface:** Offer an intuitive interface for scientific programming languages (initially Python) to define schemas, manipulate data, and perform queries without requiring direct SQL composition.
+* **Scalability:** Efficiently manage and process large-scale scientific datasets and complex computational workflows.
+* **Extensibility and Interoperability:** Allow customization through user-defined data types and facilitate integration with the broader scientific computing ecosystem.
+
 
 ## Terminology
 
-DataJoint adopts familiar terms from relational database theory and clearly defines their usage within this specification:
+DataJoint adopts familiar terms from relational database theory and defines additional terms specific to its computational framework.
 
 | Term | Definition |
 |---|---|
-| **Data Pipeline** | Also called a *DataJoint project*, *computational database*, or *workflow*. A structured organization of data and computations that includes a relational database (MySQL or PostgreSQL), a dedicated code repository (e.g., `git`), and a file or object store. A pipeline serves as the **system of record** aggregating primary and computed data for collaborative scientific projects. |
-| **Schema** | (a) A collection of related table definitions and integrity constraints, and (b) a namespace organizing related tables. |
-| **Table** | The core relational data structure, either stored permanently (base table) or derived temporarily (query result). Tables have named and typed **columns (attributes)** and unordered **rows**. |
-| **Attribute** (**Column**/**Field**) | A named, typed element of a table. Always referenced by name, never by position. |
-| **Row** (**Record**/**Tuple**) | A single entry in a table with values corresponding to each attribute. Rows are uniquely identified by their **primary key**. |
-| **Primary key**| A set of attributes in a table that are designated to uniquely identify any row in that table.  |
-| **Query** | A function on stored data, expressed as a [**query expression**](#query-expressions), resulting in a new derived table. |
-| **Query Expression** | A formal definition of a query expressed with [**query operators**](#query-operators)  acting on input tables to define a new output table.
-| **Fetch** | The execution of a query and transfer of results from server to client. |
-| **Transaction** | A sequence of database operations executed as an atomic, consistent, isolated, durable (ACID) unit. All operations succeed or fail together, with partial results invisible externally. |
+| **Data Pipeline** | A structured system for managing scientific data and computations, encompassing a relational database, code repository, and potentially object storage. It serves as the **system of record** for a scientific project, enabling structured, reproducible workflows. Also referred to as a *DataJoint project* or *workflow*. |
+| **Computational Database** | The core concept where a relational database is extended to treat **data and computations jointly**, unifying data structures and analysis code to represent and automate entire workflows. |
+| **Schema** | (a) A collection of related table definitions and integrity constraints within the database; (b) A namespace organizing related tables, typically corresponding to a Python module in the code repository. |
+| **Table** | The core relational data structure representing entities or computations. Tables have named and typed **attributes** and store data as **rows**. See also **Table Tier** and **Master/Part Table**. |
+| **Attribute** (**Column**/**Field**) | A named, typed element of a table definition, representing a specific property or data point. Always referenced by name. |
+| **Row** (**Record**/**Tuple**) | A single entry (entity instance) in a table, comprising values for each attribute. Rows are uniquely identified by their **primary key**. |
+| **Primary Key** | A designated set of attributes whose values uniquely identify each row within a table. |
+| **Foreign Key** | A set of attributes in one table that refers to the primary key of another (parent) table, establishing a dependency and enforcing referential integrity. |
+| **Table Tier** | The classification of a table (`lookup`, `manual`, `imported`, `computed`) indicating its role and how its data is populated (static reference, manual entry, automated import, automated computation). See [Table Tiers](#table-tiers). |
+| **Master Table** / **Part Table** | A design pattern where a **master** table represents a primary entity, and one or more **part** tables (defined as nested classes) store dependent details. This ensures group integrity, meaning the master and its parts are inserted and deleted together atomically. See [Master-Part Relationship](#master-part-relationship). |
+| **`make` Method** | A required method within `Computed` and `Imported` table classes that defines the computation or data import process for populating the table's rows based on upstream data. See [Computation](#computation). |
+| **Key Source** | For `Computed` and `Imported` tables, the set of primary key values from upstream tables for which a computation or import needs to be performed. It identifies the pending tasks for the `make` method. |
+| **Query** | A function operating on stored or derived data, typically defined via a **Query Expression**, resulting in a new derived table (relation). |
+| **Query Expression** | A formal definition of a query expressed using DataJoint's query operators (e.g., restriction `&`, join `*`, projection `.proj()`) acting on tables or other query expressions. |
+| **Fetch** | The execution of a query expression on the database server and the transfer of the resulting data (rows) to the client application. |
+| **Transaction** | A sequence of database operations executed as a single, atomic, consistent, isolated, and durable (ACID) unit. Ensures all operations within the sequence succeed or fail together. |
+| **Object (Attribute Type)** | An attribute type (`object`) used to store references to large data entities (e.g., files, arrays) managed by DataJoint but typically stored externally in an **Object Store** rather than directly within the database table row (unlike the `blob` type). See [Object Types](#object-types). |
+| **Object Store** | A storage backend (e.g., filesystem, S3, GCS) used in conjunction with the relational database to store large data objects referenced by attributes of type `object`. See [Object Storage](#object-storage). |
+| **Custom Type / Type Adaptor** | A user-defined mechanism to handle the conversion between specialized scientific data objects (e.g., specific file formats, complex data structures) and a supported underlying stored attribute type (e.g., `blob`, `object`, `varchar`). See [Custom Types](#custom-types). |
 
 ---
 
