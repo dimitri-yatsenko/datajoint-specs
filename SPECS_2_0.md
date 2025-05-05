@@ -28,7 +28,7 @@ By following the **DataJoint Specs**, users and developers can:
 
 **DataJoint provides scientists with enhanced capabilities to design, implement, and manage the data operations underpinning their research**.
 
-At its core, **DataJoint treats data and computations jointly within a formal _computational database_**, unifying data structures and analysis code. It extends the traditional relational data model so that some tables contain raw or curated input data, while others define computations and store their results. This makes it possible to precisely construct and express entire scientific workflows—data acquisition, transformation, analysis—as structured, executable pipelines directly within the database.
+At its core, **DataJoint treats data and computations jointly within a formal _computational database_**, unifying data structures and analysis code. It extends the traditional relational data model so that some tables contain raw or curated input data, while others define computations and store their results. This makes it possible to precisely construct and express entire scientific workflows—data acquisition, transformation, analysis—as structured, executable pipelines.
 
 In this architecture, the database becomes more than just a storage system; it evolves into a **living pipeline** that encodes the logic and lineage of scientific work:
 
@@ -51,7 +51,7 @@ By unifying computational logic and relational data modeling, **DataJoint provid
 DataJoint is defined by an **open standard** designed to ensure interoperability and compatibility across different implementations and scientific workflows.
 Aligned with Open Science principles, this standard focuses on the **core components** that form the foundation of any DataJoint pipeline, often visualized as the inner circle in the architectural diagram below.
 
-![DataJoint Architecture Diagram](figures/dj-platform.jpg)
+![DataJoint Architecture Diagram](figures/dj-platform.png)
 *Diagram illustrating the core components defined by the DataJoint standard (inner circle) and the broader ecosystem integration points (outer circle).*
 
 These **core components**, covered by these specifications, include:
