@@ -14,7 +14,7 @@ By following the **DataJoint Specs**, users and developers can:
 - Provide a **foundation for future enhancements** while preserving backward compatibility.  
 
 ## License
-The licensing for the specs is under review. **Please inquire before contributing or copying.**  
+This project, including the DataJoint Specification document, is licensed under the [CC BY-SA 4.0 License](LICENSE.md).
 
 
 ## Communicating version compatibility
