@@ -122,7 +122,7 @@ The DataJoint standard is designed around the following key objectives and princ
 
 * **Unified Data and Computation:** Extend the relational model to a *computational database*, seamlessly integrating data storage with computational logic and dependencies.
 * **Data Integrity and Reliability:** Enforce data validity, consistency, and correctness through rigorous relational database principles, including primary keys, foreign keys, constraints, and ACID-compliant transactions.
-* **Guaranteed Reproducibility:** Ensure computations are traceable and reproducible by design, linking results to the exact data, parameters, and code versions used in their generation[.
+* **Guaranteed Reproducibility:** Ensure computations are traceable and reproducible by design, linking results to the exact data, parameters, and code versions used in their generation.
 * **Automation of Computation:** Enable intelligent and automated execution of computational steps based on data availability and predefined dependencies.
 * **Seamless Collaboration:** Provide a structured, shared "single source of truth" through a common database schema, facilitating concurrent work and consistent data access for teams.
 * **Powerful and Flexible Querying:** Leverage the relational model to enable sophisticated and efficient querying of complex datasets based on any recorded attribute.
@@ -204,8 +204,7 @@ Since DataJoint uses relational database backends, all data can be accessed thro
 # Pipeline Design
 
 A **data pipeline** supporting a scientific study is  a structured system for managing **scientific data, dependencies, computations, and execution workflows**.
-It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing*
-. In addition to handling **computational dependencies and job execution**, a pipeline may also include **graphical interfaces for data navigation, analysis, and collaboration**.
+It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing**.
 
 ## **Pipeline ≡ Python Package**
 
@@ -217,11 +216,13 @@ A **DataJoint pipeline follows a directed acyclic graph (DAG) structure**, where
 - **Nodes** represent **Python modules** (database schemas).
 - **Edges** represent **dependencies**, including:
   - **Python import dependencies** between modules.
-  - **Referential dependencies** (foreign keys) between tables, defining data flow.
+  - **Referential dependencies** (bundles of foreign keys) between tables, defining data flow.
+
 
 ![Pipeline Design](figures/pipeline-illustration.png)
 
 > **Cyclical dependencies are not allowed** – All referential constraints within a schema must also form a **DAG**, meaning that foreign keys cannot create circular dependencies.
+> This acyclicity applies to the import dependencies between modules and the bundled foreign key dependencies between schemas.
 
 ## **Database Schema ≡ Python Module**
 
@@ -270,18 +271,17 @@ These tiers ensure **clear separation** between manually curated, automatically 
 
 # Table Definition
 
-Each table definition consists of:
-
-- **Table name** – Defined as a class in Python and translated to a database table name.
-- **Table tier** – Specifies the table's role in the pipeline.
-- **Primary key** – Defines the unique identifier for each row.
+A table is defined by defining its elements, which include:
+- **Table name** – Defined as a class in Python and translated into a database table name.
+- **Table tier** – Specifies the table's role in the pipeline: `lookup`, `manual`, `imported`, `computed`.
+- **Primary key** – Defines the attributes comprising the unique identifier for each row.
 - **Attributes** – Columns specifying the table's data structure.
 - **Foreign keys** – Define dependencies on upstream tables.
 - **Indexes** – Optimize queries and enforce constraints.
 
 
 ## Attribute Definition
-The table definition defines a number of fields, each on a separate line in the following format:
+The table definition comprises a set of attributes defined by their name, type, default value (optional), and comment (optional).
 
 ```
 attribute_name: type
@@ -300,16 +300,17 @@ Each table must have a primary key. The primary separator `---` separates the pr
 
 Primary key attributes cannot have default values.
 
-The primary key separator is required in the table definition. All tables must have a primary key.
+All tables must have a primary key: a set of attributes that uniquely identify each row.
+The primary key attributes are always the first attributes in the table definition.
+The primary key separator is required in the table definition. 
+The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or zero attributes (singleton table). A singleton table cannot have more than one row.
 
-The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or no attributes (singleton table). A singleton table can have at most one row.
-
-## Indexes
+## Indexes and Unique Constraints
 Besides the primary key, a table may have a number of secondary indexes on combinations of fields.
 An additional index may be used to speed up searched by those fields.
 This is done in the format `index (attr1, attr2)` or `unique index (attr1, ..., attrn)`.
 
-Example table with additional unique indexes:
+Example table with additional indexes:
 ```python
 @schema
 class Person(dj.Manual):
@@ -330,10 +331,11 @@ class Person(dj.Manual):
     """
 ```
 This definition allows fast searches by `last_name`, `(last_name, first_name)`, as well as by other attributes with indices.
-Note that a unique index on a nullable field does not prevent multiple rows with `null` in the unique field.
+Note that a unique index on a nullable field does not prevent multiple rows with `null` in the unique field. In our example, two rows with `null` in the `drivers_license` field are allowed.
 
 
 ## Foreign keys
+A foreign key from the child table to the parent table is defined by pointing `->` to the class name representing a parent table.
 Foreign keys are defined on separate lines by pointing to the class name representing a parent table.
 
 ```
@@ -355,8 +357,9 @@ A foreign key has the following effects:
 3. An implicit index is created in the child table on the foreign key to speed up matches on foreign key attributes.
 
 ## Lookup tables
-Lookup tables are special tables whose contents is considered part of the schema design rather than project data.
-Therefore, its content is provided as part of the table declaration, although it can evolve over time.
+Lookup tables are special tables whose contents is considered part of the schema design rather than the project data: a fresh new pipeline deployment will have its lookup tables pre-populated.
+Therefore, the contents of a lookup table is provided as part of its table definition.
+This does not prevent the lookup tables from being updated as part of the schema evolution.
 
 For example, the following table specifies the periodic table of elements:
 ```python
@@ -388,9 +391,10 @@ class ChemicalElement(dj.Lookup):
 DataJoint supports a **small set of fundamental types** for storing attributes in database columns.
 These types **abstract and simplify** the underlying SQL data types provided by relational backends ([PostgreSQL](https://www.postgresql.org/docs/current/datatype.html) and [MySQL](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)) to align with the needs of **data science and experimental workflows**.
 
-This specification **prioritizes intuitive type names** (e.g., `uint8` instead of SQL's `tinyint unsigned`) to improve usability for **scientific applications**.
+This specification prioritizes data types familiar to scientists (e.g., `uint8` instead of SQL's `tinyint unsigned`) to improve usability for **scientific applications**.
 
 ### **Core Attribute Types**
+A small set of core types shall be supported:
 
 | Category | Type | Description |
 | --- | --- | --- |
