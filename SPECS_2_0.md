@@ -1,8 +1,7 @@
 # DataJoint Specs
 
 * Version: 2.0
-* Status: [DRAFT]
-* Accepted:  2025-06-01 (projected)
+* Status: Accepted 2025-06-01
 * Authors:
   * [Dimitri Yatsenko](https://github.com/dimitri-yatsenko)
 * Implements DSEPs:
@@ -158,7 +157,7 @@ DataJoint adopts familiar terms from relational database theory and defines addi
 | **Object Store** | A storage backend (e.g., filesystem, S3, GCS) used in conjunction with the relational database to store large data objects referenced by attributes of type `object`. See [Object Storage](#object-storage). |
 | **Custom Type / Type Adaptor** | A user-defined mechanism to handle the conversion between specialized scientific data objects (e.g., specific file formats, complex data structures) and a supported underlying stored attribute type (e.g., `blob`, `object`, `varchar`). See [Custom Types](#custom-types). |
 
----
+----
 
 ## Frequently Asked Questions
 
@@ -274,11 +273,23 @@ These tiers ensure **clear separation** between manually curated, automatically 
 A table is defined by defining its elements, which include:
 - **Table name** – Defined as a class in Python and translated into a database table name.
 - **Table tier** – Specifies the table's role in the pipeline: `lookup`, `manual`, `imported`, `computed`.
-- **Primary key** – Defines the attributes comprising the unique identifier for each row.
-- **Attributes** – Columns specifying the table's data structure.
+- **Attributes** – Columns specifying the table's data structure: name, type, default value (optional), and comment (optional).
+- **Primary key** – The set of attributes jointly comprising the unique identifier for each row.
 - **Foreign keys** – Define dependencies on upstream tables.
 - **Indexes** – Optimize queries and enforce constraints.
 
+A common way to define a table is to define its elements in a multi-line string as a class attribute `definition`:
+```python
+@schema
+class TableName(dj.Table):
+    definition = """
+    # comment
+    attr1: type
+    ---
+    attr2: type  
+    """
+```
+However, other ways to define a table are also possible.
 
 ## Attribute Definition
 The table definition comprises a set of attributes defined by their name, type, default value (optional), and comment (optional).
@@ -296,14 +307,22 @@ A special default value of `null` makes the attribute nullable. There is no othe
 
 ## Primary Key
 
-Each table must have a primary key. The primary separator `---` separates the primary key attributes above from the secondary attributes below. All the attributes above the primary separator, jointly, comprise the primary key.
+All tables must have a primary key: a set of attributes that uniquely identify each row.
+The primary key attributes are always the first attributes in the table definition.
+The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or zero attributes (singleton table). A singleton table cannot have more than one row.
+
+The primary separator `---` is required in each table definition. 
+It separates the primary key attributes above from the secondary attributes below: all the attributes above the primary separator, jointly, comprise the primary key.
 
 Primary key attributes cannot have default values.
 
-All tables must have a primary key: a set of attributes that uniquely identify each row.
-The primary key attributes are always the first attributes in the table definition.
-The primary key separator is required in the table definition. 
-The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or zero attributes (singleton table). A singleton table cannot have more than one row.
+## Schema Normalization
+
+Tables must be designed in a normalized form where each table is designed to contain one well-defined entity type with the same attributes and uniquely identified by its primary key.
+All attributes must directly relate to the entity identified by the primary key.
+
+Schema normalization aims to break up tables that are used to store multiple entity types into several tables, each containing one entity type.
+
 
 ## Indexes and Unique Constraints
 Besides the primary key, a table may have a number of secondary indexes on combinations of fields.
@@ -343,8 +362,7 @@ Foreign keys are defined on separate lines by pointing to the class name represe
 -> [nullable, unique] ParentClassName
 -> ParentClassName.proj(new_name=old_name)
 ```
-
-Cyclical dependencies are not allowed.
+Cyclical dependencies are not allowed. Foreign keys collectively must form a directed acyclic graph (DAG).
 
 Attribute properties can be `nullable` and `unique`.
 
@@ -354,7 +372,9 @@ A foreign key has the following effects:
 
 1. The primary key attributes of the parent table are included in the child table definition if they are not already included.
 2. A referential dependency is established between the child and the parent.
-3. An implicit index is created in the child table on the foreign key to speed up matches on foreign key attributes.
+3. An *implicit index* is created in the child table on the foreign key to speed up matches on foreign key attributes.
+
+DataJoint does not allow foreign keys that reference a set of attributes that is not the primary key of the parent table.
 
 ## Lookup tables
 Lookup tables are special tables whose contents is considered part of the schema design rather than the project data: a fresh new pipeline deployment will have its lookup tables pre-populated.
@@ -383,7 +403,6 @@ class ChemicalElement(dj.Lookup):
         {'atomic_number': 3, 'symbol': 'Li', 'name': 'Lithium',   'atomic_weight': 6.94},
         {'atomic_number': 4, 'symbol': 'Be', 'name': 'Beryllium', 'atomic_weight': 9.0122}
     ]
-
 ```
 
 ## Attribute Types
@@ -464,7 +483,7 @@ Key Benefts of Custom Types:
 - [x] Simplify retrieval and conversion of complex objects.
 - [x] Maintain backward compatibility with legacy data structures.
 
-Type adaptors must be **registered and available at the time of schema declaration** and maintained continually for data operations to ensure compatibility.
+Type adaptors must be **accessible at the time of schema declaration** and maintained continually for data operations to ensure compatibility.
 Generally, revisions of adaptors must maintain backward compatibility.
 They are implemented as classes subclassing from `dj.CustomType` and must implement the following methods:
 1. `type_name` (property) → str -- returns the name by which the
@@ -472,12 +491,7 @@ They are implemented as classes subclassing from `dj.CustomType` and must implem
 2. `put(self, key, user_object) -> stored_object`
 3. `get(self, key, stored_object) -> user_object`
 
-The custom type is activated by registering it with the DataJoint client
-
-```python
-dj.register_type(CustomType)
-```
-
+The custom type is activated by registering it with the DataJoint client using plugins or similar mechanisms.
 
 **Example Type Adaptors**
 
@@ -487,12 +501,11 @@ dj.register_type(CustomType)
 | `<zarr2p>` | `file` | Converts two-photon imaging data into compressed Zarr objects. |
 | `<dj_npy>` | `file` | Serializes Python objects into Numpy-compatible files. |
 
-
 Custom types typically implemented in separate modules and loaded as [Python plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/)
 
 Example type adaptors:
 
-- `<djblob>` - (core type: `blob`), converts an arbitrary python structure into a blob type, backward-copmatible with legacy blobs. Old blobs become
+- `<djblob>` - (core type: `blob`), converts an arbitrary python structure into a blob type, backward-copmatible with legacy blobs. Legacy blobs become attributes of type `<djblob>` in this new stanard.
 - `<zarr2p>` - (core type: `file`), converts two-photon movies into compressed zarr objects
 - `<numpy-npy>` - (core type: `file`), converts numpy array into a npy file :w
 - `<numpy-zarr>` - (core type: `file`), converts numpy array into a zarr object
@@ -597,12 +610,9 @@ The pipeline is visualized as a **Directed Acyclic Graph** with nodes correspond
 The tables are grouped by their schemas, which, in turn, also form a DAG, where edges bundle all the foreign key from the child schemas to the parent schemas.
 The diagram is always depicted with the data moving top-to-bottom (foreign keys referencing upward) or left-to-right (foreign keys referencing leftward).
 
-`dj.Diagrams` are graph objects  and support an algebra of graph operations: union, intersection. (Elaborate: what's the operation to include one layer of nodes upstream or downstream?) .
+`dj.Diagram` are graph objects that support an algebra of graph operations: union, intersection, and dilation.
 
-The nodes are colored according to their [table tier](#table tiers).
-
-
-
+The nodes are colored according to their [table tier](#table-tiers).
 
 ---
 # Object Storage
@@ -845,39 +855,95 @@ for rec in (Student & {"state": "TX"}):
 
 ## Query Operators
 
-DataJoint provides several fundamental query operators:
+DataJoint provides five fundamental query operators:
+* **Restriction** and **Anti-Restriction**: `&` and `-`
+* **Projection**: `.proj(...)`
+* **Join**: `*`
+* **Aggregation**: `.aggr(...)`
+* **Union**: `+`
 
-### Restriction
+These operators can be combined into expressions to form more complex queries.
+Normal Python operator precedence applies and parentheses can be used to control the evaluation order.
+
+## Semantic Matching
+
+For binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`, aggregation `A.aggr(B, ...)`, and union `A + B`), it becomes necessary to match rows in table `A` to rows in table `B`.
+
+> In SQL, this matching is performed explicitly by the `ON` clause or `USING` clause or using `NATURAL JOIN`.
+> DataJoint uses a more restrictive matching rule called *semantic matching*.
+
+Semantic matching between rows of tables `A` and `B` is performed as the equality condition on all pairs of attributes that:
+1. Have the same name in both `A` and `B`
+2. Trace to the same attribute definition through an uninterrupted chain of foreign keys
+
+For example, the join operation `A * B` is valid if and only if for every pair of attributes `attr` in `A` and `attr` in `B` that have the same name, the attributes trace to the same attribute definition through an uninterrupted chain of foreign keys.
+This is a more restrictive rule than *natural join* in classical relational algebra and SQL, which only requires that the attributes have the same name but allows them to trace to different definitions.
+
+If the tables `A` and `B` have attributes with the same names but do not trace their lineage to the same original definition, these attributes are said to "collide", making the binary operator invalid.
+This is a *semantic mismatch* and `A` and `B` are said to be *semantically incompatible*.
+To resolve semantic mismatch, it may become necessary to first apply the projection operation to one or both operands in order to remove or rename the colliding attributes.
+
+Suppose that table `Student` has attributes (`student_id`, `name`) and table `Course` has attributes (`course_id`, `name`).
+Here `name` is a colliding attribute because it has the same name in both tables but is defined separately in each table.
+```
+# Invalid join - attributes have same name but different definitions
+Student * Course  # Error: ambiguous name 'name'
+
+# Valid cartesian product: colliding attributes are renamed
+Student * Course.proj(course_name='name') # The result has attributes `name` from student and `course_name from Course
+```
+
+## Algebraic Closure
+
+In DataJoint, the result of any query expression is itself a well-formed relational table that can be used as an input for further operations.
+This property is described as *algebraic closure*, which is essential for constructing complex queries from simple ones.
+
+In particular, this means that the result of any operator is a proper relational table having named columns of known data types and a well-defined primary key.
+All attributes "know" their lineage to the original table definition, which allows for semantic matching when joining tables.
+
+
+
+## Operator: Restriction
 `A & cond` and `A - cond`
 
-The restriction operator filters rows based on conditions:
+The restriction operator filters rows based on conditions.
+It comes in two flavors: restriction `&` and anti-restriction `-`.
+The primary key of the result is the same as that of the left operand.
 
 1. **Restriction by a Condition**
 ```python
 # Find all students from California
-(Student & "home_state = 'CA'").fetch()
+Student & "home_state = 'CA'"
+
+# Find all students from California
+Student - "home_state = 'CA'"
 ```
 
-2. **Restriction by a Sequence**
+2. **Restriction by a Sequence and by a `dj.List`**
 When a query is further restricted by a sequence (e.g. a list) of conditions, the conditions are applied by logical adjunction, i.e. *logical or*.
 ```python
 # List young students and those who are from outside California
 Student & ["home_state<>'CA'", "date_of_birth >= '2010-01-01'"]
-```
 
+# List older students from California
+Student - ["home_state<>'CA'", "date_of_birth >= '2010-01-01'"]
+```
 
 To apply conditions by logical conjunction (*logical and*), the conditions are either applied succesively or are applied using the special `dj.AndList` sequence.
 ```python
 # List young students from outside California
-Student & dj.AndList(["home_state<>'CA'", "date_of_birth >= '2010-01-01'"])
-# equivalent to
 Student & "home_state<>'CA'" & "date_of_birth >= '2010-01-01'"
+# This can be equivalently written as
+Student & dj.AndList(["home_state<>'CA'", "date_of_birth >= '2010-01-01'"])
 ```
 
 3. **Restriction by a Subquery**
 ```python
 # Find students who have taken a specific course
-(Student & (Enroll & "course_id = 'CS101'")
+Student & (Enroll & "course_id = 'CS101'")
+
+# Find students who have not taken a specific course
+Student - (Enroll & "course_id = 'CS101'")
 ```
 
 4. **Restriction by `dj.Top`**
@@ -889,29 +955,84 @@ Student & dj.Top(5)
 Student & dj.Top(5, order_by="date_of_birth DESC")
 ```
 
-### Projection
-`A.proj(...)`
+## Operator: Projection `A.proj(...)`
 
 Projection selects specific attributes and can rename them:
 
 ```python
 # Get student names and emails
-Student.proj('first_name', 'last_name', 'email').fetch()
+Student.proj('first_name', 'last_name', 'email')
 
 # Rename attributes during projection
-Student.proj(first='first_name', last='last_name').fetch()
+Student.proj(first='first_name', last='last_name')
 ```
 
-### Join `A * B`
-
-Join combines tables based on matching attributes:
+The result of projection always includes the primary key of its operand.
+The primary key attributes cannot be projected out (but they can be renamed).
 
 ```python
-# Join students with their courses
-(Student * StudentCourse).fetch()
+Student.proj() # returns the primary key attributes
 ```
 
-### Union `A + B`
+Project can also calculate new attributes that are derived from the operand attributes.
+
+```python
+Student.proj(
+  full_name='CONCAT(first_name, " ", last_name)'
+  age='DATE_DIFF(CURDATE(), date_of_birth)/365.25', 
+  )  # this will return (student_id, full_name, age)
+```
+
+The `...` (ellipsis) specification is used to include all attributes of the operand. This can be used in compbination with `-` to exclude certain attributes.
+
+```python
+Student.proj(..., -'email') # returns all attributes except email
+```
+
+The primary key of the projection result is the same as that of the operand.
+
+## Operator: Join `A * B`
+
+The join operator `A * B` combines rows composed from the cartesian product of the rows in `A` and `B` restricting the result to semantically matching rows.
+
+```python
+# Include student information in the enrollment table
+Enroll * Student
+
+# Include course information in the enrollment table. 
+# Course and Enroll share a common attribute `course_id`, 
+# which is inherited from the `Course` table by a foreign key.
+Enroll * Course
+```
+
+## Operator: Aggregation `A.aggr(B, ...)`
+
+Aggregation `A.aggr(B, ...)` projects attributes from table `A` similar to `A.proj(...)` but it also allows aggregation calculations on groups of data from table `B` grouped by the primary key of table `A`.
+`A` and `B` must be semantically compatible. Further, `B` must have all the attributes `A`'s primary key with the same names.
+This ensures correct grouping and aggregation.
+
+Using SQL terminology, aggregation is implemented as a left join followed by a `GROUP BY` clause on the primary key of `A` and the specified aggregation functions applied to expressions onthe attributes of `B`.
+
+
+```python
+# Calculate the average grade of students
+Student.aggr(Grade, 
+  full_name='CONCAT(first_name, " ", last_name)', 
+  avg_grade='AVG(grade)'
+)
+```
+which is equivalent to SQL:
+```sql
+SELECT 
+    CONCAT(first_name, " ", last_name) as full_name,
+    AVG(grade) as avg_grade
+FROM Student
+LEFT JOIN Grade USING student_id
+GROUP BY student_id
+```
+The result of aggregation is a table with the same primary key as that of the operand.
+
+## Operator: Union `A + B`
 
 Union combines rows from multiple tables with compatible schemas:
 
@@ -920,52 +1041,36 @@ Union combines rows from multiple tables with compatible schemas:
 (CurrentStudent + FormerStudent).fetch()
 ```
 
-### Universal Sets `dj.U()`
+## Universal Sets `dj.U()`
 
 Universal sets represent all possible combinations of values of a set of attributes.
 From this perspective, they are symbolic representations rather than actual results:
 They can be useful in queries but can never be queried by themselves.
 
 ```python
-# Get all birth years for texas students
-dj.U('year') & (Student & {"state": "Texas"}).proj(year="YEAR(date_of_birth")
+# Get the list of all last names from the student table
+dj.U('last_name') & Student
 ```
-In this case, `dj.U('year')` is the set of all possible values (of any type) for a field named "year" but when restricted by another query, it provides a well-defined finite result.
+In this case, `dj.U('last_name')` is the set of all possible values (of any type) for a field "last_name". 
+By itself, it is not a valid query, but it can be used in combination with other queries to restrict the set of possible values.
 
-## Algebraic Closure
+Without any attributes, `dj.U()` describes the one single universe.
+It can be used in aggregation operations to compute universal aggregations.
 
-In DataJoint, the operands and the output of any query operator are well-formed relational tables having named columns of known data types and a well-defined primary key. This property is described as *algebraic closure*, which is essential for constructing complex queries from simple ones.
-
-This ensures that any combination of joins, restrictions, projections, and other operations results in a valid table that can be used as input for further operations:
-
-- **Closure under Join (`*`)**: The result of a join between two tables is always a table that can be queried further.
-- **Closure under Restriction (`&`)**: Applying a restriction to a table results in a new table that maintains its relational properties.
-- **Closure under Projection (`.proj()`)**: Projection creates a new table with a new set of attributes while preserving integrity.
-- **Closure under Aggregation**: Aggregation operations yield tables that can be used in subsequent queries.
-
-## Semantic Match
-
-For binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`), it becomes necessary to match rows in one table to rows in another table.
-
-The match is performed as the equality condition on all pairs of attributes that:
-1. Have the same name in both `A` and `B`
-2. Trace to the same attribute definition through an uninterrupted chain of foreign keys
-
-If the tables `A` and `B` have attributes with the same names but do not trace their lineage to the same original definition, the binary operators will be invalid. Users must remove or rename the colliding attributes before performing the binary operation.
-
-Example:
+For example,
 ```python
-# Valid join - common attributes trace to same definition
-(Student * StudentCourse).fetch()  # student_id matches
-
-# Invalid join - attributes have same name but different definitions
-(Student * Course).fetch()  # Error: ambiguous name 'name'
+# count all students
+dj.U().aggr(Student, n_students='COUNT(student_id)')
 ```
+counts all students.
 
-To resolve semantic matching, it may become necessary to first apply the projection operation to one or both operands in order to resolve semantic mismatch.
+Here `dj.U()` becomes necessary because in DataJoint, aggregation requires a grouping entity and `dj.U()` plays this role when aggregating all entries.
+
+The primary key of this aggregation is the empty set, indicating that only one entry can exist.
 
 -----------
 # Computation
+
 DataJoint integrates **computation directly into its data model**, similar to how spreadsheets update **formula-driven cells** when inputs change.
 Some tables are designated for **automated computations**, meaning:
 - **Users cannot manually insert data** into these tables.
