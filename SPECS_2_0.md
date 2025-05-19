@@ -89,8 +89,8 @@ While the standard defines the core, a fully operational scientific pipeline oft
 * **Job Orchestration:** Systems for scheduling, executing, distributing, and monitoring computational jobs (e.g., DataJoint Compute Service, custom scripts, Airflow, SLURM, Kubernetes).
 * **Web Interfaces, APIs, and System Integrations:** Tools for interactive data exploration, visualization, data entry (e.g., custom dashboards, JupyterHub), and integration with external systems (ELNs, LIMS, instruments).
 
-While these extensions build upon the core framework,  they are generally **outside the scope of the base DataJoint specification**, allowing flexibility and choice in implementation.
-Various DIY implementations and DataJoint't commercial offerings may be diverge in implementing such extensions.
+While these extensions build upon the core framework, they are generally **outside the scope of the base DataJoint specification**, allowing flexibility and choice in implementation.
+Various DIY implementations and commercial offerings may diverge in implementing such extensions.
 
 ## The DataJoint Platform (not covered by the specs or open standard)
 
@@ -286,7 +286,7 @@ class TableName(dj.Table):
     # comment
     attr1: type
     ---
-    attr2: type  
+    attr2: type
     """
 ```
 However, other ways to define a table are also possible.
@@ -311,7 +311,7 @@ All tables must have a primary key: a set of attributes that uniquely identify e
 The primary key attributes are always the first attributes in the table definition.
 The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or zero attributes (singleton table). A singleton table cannot have more than one row.
 
-The primary separator `---` is required in each table definition. 
+The primary separator `---` is required in each table definition.
 It separates the primary key attributes above from the secondary attributes below: all the attributes above the primary separator, jointly, comprise the primary key.
 
 Primary key attributes cannot have default values.
@@ -505,10 +505,10 @@ Custom types typically implemented in separate modules and loaded as [Python plu
 
 Example type adaptors:
 
-- `<djblob>` - (core type: `blob`), converts an arbitrary python structure into a blob type, backward-copmatible with legacy blobs. Legacy blobs become attributes of type `<djblob>` in this new stanard.
-- `<zarr2p>` - (core type: `file`), converts two-photon movies into compressed zarr objects
-- `<numpy-npy>` - (core type: `file`), converts numpy array into a npy file :w
-- `<numpy-zarr>` - (core type: `file`), converts numpy array into a zarr object
+- `<dj_blob>` - (core type: `blob`), converts an arbitrary python structure into a blob type, backward-copmatible with legacy blobs. Legacy blobs become attributes of type `<djblob>` in this new stanard.
+- `<zarr2p>` - (core type: `object`), converts two-photon movies into compressed zarr objects
+- `<npy>` - (core type: `object`), converts numpy array into a npy file 
+- `<numpy-zarr>` - (core type: `object`), converts numpy array into a zarr object
 
 ### Using a CustomType in a DataJoint Table
 Once implemented, a type adaptor can be used in a DataJoint table by specifying it in a field definition
@@ -785,6 +785,8 @@ Student.delete()
 (Student & "student_id IN (500, 501, 503)").delete()
 ```
 
+Delete cascades to all dependent records in the downstream tables after proper user confirmation.
+
 ## Update
 Update is used to change the values of secondary attributes in one record only.
 The `Table.update1(rec)` operator takes a mapping, `rec`, which must provide:
@@ -823,250 +825,295 @@ Foreign keys enforce referential integrity, which affects how insert, delete, an
 ------------
 # Queries
 
-A query is a function on the data performed on the server side, yielding a derived table. The results are transferred to the client through fetch operations.
+A query is a server-side operation on stored or derived data that yields a new derived table. The results of a query are transferred to the client application through fetch operations.
 
 ## Query Expressions
 
-A query expression is a formal definition of a query expressed with [query operators](#query-operators) acting on input tables to define a new output table. Query expressions are:
+A query expression is the formal definition of a query. It is constructed by applying [Query Operators](#query-operators) to one or more input tables (or the results of other query expressions) to define an output table. Query expressions in DataJoint adhere to the following principles:
 
-1. **Composable**: Can be combined to form more complex queries
-2. **Declarative**: Describe what data to retrieve rather than how to retrieve it
-3. **Relational**: Maintain relational integrity in the results
+1.  **Composable**: Query expressions can be combined, allowing the output of one expression to serve as an input for another, enabling the construction of complex queries from simpler components.
+2.  **Declarative**: Query expressions specify the desired data to be retrieved rather than the explicit sequence of computational steps to obtain it. The DataJoint client and underlying database engine are responsible for optimizing and executing the query.
+3.  **Relational**: The result of any query expression is a well-formed relational table, possessing a defined set of attributes and a primary key, thus maintaining relational integrity.
 
-## Fetch
+## Fetch Operations
 
-Fetching is the process of executing the query and transferring query results from the server to the client. The fetch operation retrieves query output in various formats, typically as dictionaries, lists, or NumPy arrays.
+Fetch operations execute a query expression on the database server and transfer the resulting data to the client application.
 
-- `fetch()`: Returns query results as a dataframe, a numpy recarray, or a sequence of dictionaries.
-- `fetch1()`: Ensures that only a single row is returned and raises an error if multiple rows are present. The result is typically a dictionary.
+### `.fetch()` Method
 
-### Iteration
+The `.fetch()` method retrieves all rows satisfying the query expression.
 
-DataJoint query objects are iterable, allowing you to process results row by row within standard Python loops. This approach is particularly memory-efficient for large datasets, as it typically fetches data incrementally (row by row or in small batches) rather than loading the entire result set into memory at once.
+* **Function:** Executes the query and returns the complete result set.
+* **Output Formats:** The result set can be returned in various formats, including but not limited to a sequence of dictionaries, a NumPy structured array, or a Pandas DataFrame, depending on client implementation and configuration.
+* **Example:**
+    ```python
+    # Retrieve all attributes for students residing in California.
+    query_ca_students = Student & "home_state = 'CA'"
+    results = query_ca_students.fetch()
+    # 'results' contains the fetched data.
+    ```
 
-Each iteration yields a dictionary representing a single row from the query result.
+### `.fetch1()` Method
 
-Example:
-```python
-# print the records of Texas students
-for rec in (Student & {"state": "TX"}):
-    print(rec)
-```
+The `.fetch1()` method retrieves a single row satisfying the query expression.
+
+* **Function:** Executes the query and returns one row.
+* **Constraints:** This method SHALL raise an error if the query result contains zero rows or more than one row.
+* **Output Format:** The result is typically a dictionary representing the single row.
+* **Example:**
+    ```python
+    # Retrieve attributes for the student with student_id = 1002.
+    query_student = Student & "student_id = 1002"
+    try:
+        student_record = query_student.fetch1()
+        # 'student_record' contains the data for the specified student.
+    except dj.DataJointError as e:
+        # Handle error if student is not found or if multiple records exist.
+        print(f"Query execution error: {e}")
+    ```
+
+### Iteration over Query Results
+
+DataJoint query expression objects SHALL be iterable. Iteration allows for row-by-row processing of query results.
+
+* **Function:** Enables sequential processing of result rows, typically fetching data incrementally from the server. This approach is memory-efficient for large result sets.
+* **Output per Iteration:** Each iteration SHALL yield a dictionary representing a single row from the query result.
+* **Example:**
+    ```python
+    # Process records for students residing in Texas.
+    query_tx_students = Student & "home_state = 'TX'"
+    for record in query_tx_students:
+        # 'record' is a dictionary for the current student row.
+        process_student_record(record) # Example processing function
+    ```
 
 ## Query Operators
 
-DataJoint provides five fundamental query operators:
+DataJoint provides a set of fundamental query operators for constructing query expressions. These operators act on tables or query expressions to produce new tables.
+
+The primary query operators are:
 * **Restriction** and **Anti-Restriction**: `&` and `-`
 * **Projection**: `.proj(...)`
 * **Join**: `*`
 * **Aggregation**: `.aggr(...)`
 * **Union**: `+`
 
-These operators can be combined into expressions to form more complex queries.
-Normal Python operator precedence applies and parentheses can be used to control the evaluation order.
+These operators can be combined. Standard Python operator precedence SHALL apply, and parentheses `()` MAY be used to explicitly control the order of evaluation.
+
+### Operator: Restriction (`&`, `-`)
+
+The restriction operator filters the rows of a table based on specified conditions. It is expressed in two forms:
+* `A & condition`: Selects rows from table `A` that satisfy the `condition`.
+* `A - condition`: Selects rows from table `A` that do not satisfy the `condition` (anti-restriction).
+
+**Algebraic Closure under Restriction:** The primary key and attribute set of the resulting table are identical to those of the operand `A`. The entity type is preserved.
+
+**Forms of Restriction Conditions:**
+
+1.  **Restriction by a Condition String:**
+    Conditions are often expressed as SQL-like predicate strings.
+    ```python
+    # Select students from California.
+    ca_students = Student & "home_state = 'CA'"
+
+    # Select students not from California.
+    non_ca_students = Student - "home_state = 'CA'"
+    ```
+
+2.  **Restriction by a Dictionary:**
+    Conditions can be specified as a dictionary mapping attribute names to values. These imply equality conditions.
+    ```python
+    # Students from Texas (dictionary form).
+    tx_students = Student & {'home_state': 'TX'}
+    ```
+
+3.  **Restriction by a Sequence of Conditions (Logical OR):**
+    When a query is restricted by a sequence (e.g., a list) of condition strings, the conditions SHALL be combined using logical OR (disjunction).
+    ```python
+    # Select students who are from outside California OR were born on or after January 1, 2010.
+    selected_students = Student & ["home_state <> 'CA'", "date_of_birth >= '2010-01-01'"]
+    ```
+
+4.  **Restriction by Conjunction (Logical AND):**
+    To combine conditions using logical AND (conjunction), conditions MAY be applied sequentially or by using a `dj.AndList` object.
+    ```python
+    # Select young students from outside California (sequential application).
+    young_non_ca_students = Student & "home_state <> 'CA'" & "date_of_birth >= '2010-01-01'"
+
+    # Equivalent using dj.AndList.
+    young_non_ca_students_alt = Student & dj.AndList(["home_state <> 'CA'", "date_of_birth >= '2010-01-01'"])
+    ```
+
+5.  **Restriction by a Subquery:**
+    The result of another query expression can be used as a condition. The restriction acts as a semijoin (for `&`) or an anti-semijoin (for `-`).
+    ```python
+    # Select students enrolled in course 'CS101'.
+    cs101_enrollments = Enroll & "course_id = 'CS101'"
+    students_in_cs101 = Student & cs101_enrollments
+
+    # Select students not enrolled in course 'CS101'.
+    students_not_in_cs101 = Student - cs101_enrollments
+    ```
+
+6.  **Restriction by `dj.Top` (Limiting Results):**
+    The `dj.Top` operator limits the number of rows returned.
+    ```python
+    # Select the first 5 students (order is undefined unless specified).
+    top_5_students = Student & dj.Top(5)
+
+    # Select the 5 students with the most recent birth dates (youngest).
+    youngest_5_students = Student & dj.Top(5, order_by="date_of_birth DESC")
+    ```
+
+### Operator: Projection (`.proj()`)
+
+The projection operator selects a subset of attributes from a table. It can also be used to rename attributes and compute new attributes derived from existing ones.
+
+* **Attribute Selection:**
+    ```python
+    # Select first_name, last_name, and email attributes from the Student table.
+    student_contacts = Student.proj('first_name', 'last_name', 'email')
+    ```
+
+* **Attribute Renaming:**
+    ```python
+    # Select first_name and last_name, renaming them to 'first' and 'last' respectively.
+    renamed_student_names = Student.proj(first='first_name', last='last_name')
+    ```
+
+* **Primary Key Preservation:** The primary key attributes of the operand table SHALL always be included in the result of a projection, even if not explicitly specified. Primary key attributes MAY be renamed.
+    ```python
+    # This projection returns only the primary key attributes of the Student table.
+    student_primary_keys = Student.proj()
+    ```
+
+* **Computed Attributes:** New attributes can be computed using expressions that operate on the operand's attributes. The expressions are typically database functions.
+    ```python
+    # Compute 'full_name' and 'age'.
+    student_derived_info = Student.proj(
+        full_name='CONCAT(first_name, " ", last_name)',
+        age='TIMESTAMPDIFF(CURDATE(), date_of_birth) / 365.25' # Example, exact function varies by SQL dialect
+    )
+    # Result includes primary key attributes, full_name, and age.
+    ```
+
+* **Inclusion/Exclusion of Attributes:** The ellipsis (`...`) denotes all attributes of the operand. It MAY be used with subtraction (`-`) to exclude specific attributes.
+    ```python
+    # Select all attributes from Student except 'email'.
+    students_no_email = Student.proj(..., -'email')
+    ```
+**Algebraic Closure under Projection:** The primary key of the resulting table is identical to that of the operand `A`. The entity type is preserved.
+
+### Operator: Join (`*`)
+
+The join operator `A * B` combines rows from table `A` and table `B`. The operation first forms the Cartesian product of the rows and then restricts the result to rows where attributes common to both `A` and `B` satisfy [Semantic Matching](#semantic-matching) conditions.
+
+* **Usage:**
+    ```python
+    # Combine Student information with their Enrollment records.
+    student_enrollments = Student * Enroll
+
+    # Combine Enrollment records with Course details.
+    # Assumes Enroll references Course via a foreign key on course_id.
+    enrollment_course_details = Enroll * Course
+    ```
+**Algebraic Closure under Join:** The entity type and primary key of the join result depend on the functional dependencies between the operands `A` and `B` with respect to the join attributes.
+    * If one operand is functionally dependent on the other across the join attributes (e.g., `B`'s attributes in the join are determined by `A`'s primary key), the resulting entity type is that of the determining operand (`A`), and its primary key is preserved as the result's primary key.
+    * If the operands are functionally independent with respect to the join, the resulting entity type represents a pairing of the two entities, and the primary key of the result is typically the union of the primary keys of `A` and `B` (excluding redundant attributes from the shared join columns).
+
+### Operator: Aggregation (`.aggr()`)
+
+The aggregation operator `A.aggr(B, computed_attributes...)` projects attributes from table `A` (similar to `A.proj()`) and, additionally, computes new attributes by applying aggregation functions to groups of data from table `B`. Rows in `B` are grouped according to the primary key of table `A`.
+
+* **Requirements:**
+    * Tables `A` and `B` MUST be semantically compatible for the attributes involved in forming the groups.
+    * Table `B` MUST contain all attributes constituting the primary key of table `A`, with identical names and compatible types, to allow grouping of `B`'s rows by `A`'s primary key.
+* **Conceptual SQL Equivalence:** The operation is analogous to a `LEFT JOIN` from `A` to `B` (on `A`'s primary key), followed by a `GROUP BY` clause on `A`'s primary key, with aggregation functions applied to attributes from `B`.
+* **Usage:**
+    ```python
+    # For each student, compute their full name and average grade.
+    student_summary = Student.aggr(
+        Grade,                                  # Table B, providing data for aggregation
+        full_name='CONCAT(first_name, " ", last_name)', # Projected/computed from A
+        avg_grade='AVG(grade)'                  # Aggregated from B
+    )
+    ```
+**Algebraic Closure under Aggregation:** The primary key and entity type of the resulting table `A.aggr(B, ...)` are identical to those of table `A`.
+
+### Operator: Union (`+`)
+
+The union operator `A + B` combines rows from table `A` and table `B`.
+
+* **Requirements for Operands:**
+    * **Semantic Compatibility:** All attributes shared between `A` and `B` MUST be semantically compatible.
+    * **Primary Key Congruence:** Tables `A` and `B` MUST have the same primary key attributes (identical names, types, and semantic meaning). They must represent the same entity type.
+* **Behavior:**
+    * If `A` and `B` only contain primary key attributes, the result is the set-theoretic union of the rows.
+    * If `A` and `B` contain secondary attributes, the result includes all primary key entries present in either `A` or `B`. All unique secondary attributes from both `A` and `B` are included in the result schema. If both operands possess a secondary attribute with the same name for a given primary key entry, the value from the left operand (`A`) SHALL be used in the result.
+* **Usage:**
+    ```python
+    # Combine CurrentStudent and FormerStudent records.
+    all_students = CurrentStudent + FormerStudent
+    ```
+**Algebraic Closure under Union:** The primary key and entity type of the resulting table are identical to those of the operands `A` and `B`.
 
 ## Semantic Matching
 
-For binary operators (join `A * B`, restrict `A & B`, and anti-restrict `A - B`, aggregation `A.aggr(B, ...)`, and union `A + B`), it becomes necessary to match rows in table `A` to rows in table `B`.
+For binary operators that combine two tables `A` and `B` (e.g., join `*`, restriction by subquery `A & B_query`, aggregation `A.aggr(B, ...)`, union `A + B`), a mechanism is required to match rows between `A` and `B`. DataJoint employs a rule termed **semantic matching**.
 
-> In SQL, this matching is performed explicitly by the `ON` clause or `USING` clause or using `NATURAL JOIN`.
-> DataJoint uses a more restrictive matching rule called *semantic matching*.
+Semantic matching between rows of tables `A` and `B` is performed as an equality condition on all pairs of attributes that satisfy both:
+1.  The attributes have the same name in both `A` and `B`.
+2.  The attributes trace to the same original attribute definition through an uninterrupted chain of foreign keys.
 
-Semantic matching between rows of tables `A` and `B` is performed as the equality condition on all pairs of attributes that:
-1. Have the same name in both `A` and `B`
-2. Trace to the same attribute definition through an uninterrupted chain of foreign keys
+This rule is more restrictive than the `NATURAL JOIN` in SQL, which typically only requires attributes to have the same name. The DataJoint approach prevents accidental matching of attributes that are homonymous but semantically distinct.
 
-For example, the join operation `A * B` is valid if and only if for every pair of attributes `attr` in `A` and `attr` in `B` that have the same name, the attributes trace to the same attribute definition through an uninterrupted chain of foreign keys.
-This is a more restrictive rule than *natural join* in classical relational algebra and SQL, which only requires that the attributes have the same name but allows them to trace to different definitions.
+If tables `A` and `B` possess attributes with identical names that do not satisfy the second condition (i.e., they do not share the same lineage), these attributes are considered to "collide." Such a semantic mismatch renders the binary operator invalid, and an error SHALL be raised. To resolve semantic mismatches, the projection operator (`.proj()`) MUST be applied to one or both operands to rename or remove the colliding attributes prior to the binary operation.
 
-If the tables `A` and `B` have attributes with the same names but do not trace their lineage to the same original definition, these attributes are said to "collide", making the binary operator invalid.
-This is a *semantic mismatch* and `A` and `B` are said to be *semantically incompatible*.
-To resolve semantic mismatch, it may become necessary to first apply the projection operation to one or both operands in order to remove or rename the colliding attributes.
-
-Suppose that table `Student` has attributes (`student_id`, `name`) and table `Course` has attributes (`course_id`, `name`).
-Here `name` is a colliding attribute because it has the same name in both tables but is defined separately in each table.
-```
-# Invalid join - attributes have same name but different definitions
-Student * Course  # Error: ambiguous name 'name'
-
-# Valid cartesian product: colliding attributes are renamed
-Student * Course.proj(course_name='name') # The result has attributes `name` from student and `course_name from Course
-```
+* **Example of Semantic Mismatch:**
+    Given `Student(student_id, name)` and `Course(course_id, name)`.
+    The attribute `name` collides.
+    ```
+    # Invalid operation due to 'name' collision.
+    # Student * Course
+    ```
+* **Resolution:**
+    ```python
+    # Rename 'name' in Course to 'course_name' before joining.
+    valid_join = Student * Course.proj(course_name='name')
+    # Resulting attributes include 'name' (from Student) and 'course_name'.
+    ```
 
 ## Algebraic Closure
 
-In DataJoint, the result of any query expression is itself a well-formed relational table that can be used as an input for further operations.
-This property is described as *algebraic closure*, which is essential for constructing complex queries from simple ones.
+A fundamental property of DataJoint's query system is **algebraic closure**. This means that the result of any valid query expression is itself a well-formed relational table. This output table:
+* Possesses a defined set of named attributes with known data types.
+* Has a well-defined primary key.
+* Maintains the lineage of its attributes, tracing back to their original definitions. This persistence of lineage is crucial for enabling subsequent [Semantic Matching](#semantic-matching).
 
-In particular, this means that the result of any operator is a proper relational table having named columns of known data types and a well-defined primary key.
-All attributes "know" their lineage to the original table definition, which allows for semantic matching when joining tables.
+The principle of algebraic closure allows complex queries to be constructed by composing simpler query expressions, where the output of one operation serves as a valid input for the next. Each operator section above specifies how the primary key and entity type of its result are determined, preserving this closure.
 
+## Universal Sets (`dj.U()`)
 
+Universal sets, denoted by `dj.U(...)`, are symbolic constructs representing the set of all possible values for a specified list of attributes, or a singular universal context if no attributes are specified. They are not directly fetchable tables but serve as operands in query expressions.
 
-## Operator: Restriction
-`A & cond` and `A - cond`
+* `dj.U('attr1', 'attr2', ...)`: Represents a conceptual table containing all possible combinations of values for the attributes `'attr1'`, `'attr2'`, etc.
+* `dj.U()`: Represents a singular entity, effectively a table with no attributes and one conceptual row. This is primarily used for universal aggregations.
 
-The restriction operator filters rows based on conditions.
-It comes in two flavors: restriction `&` and anti-restriction `-`.
-The primary key of the result is the same as that of the left operand.
+**Applications:**
 
-1. **Restriction by a Condition**
-```python
-# Find all students from California
-Student & "home_state = 'CA'"
+1.  **Projecting Unique Values:** When restricted by an existing table, `dj.U('attribute_name')` combined with that table results in the distinct values of `'attribute_name'` present in the table.
+    ```python
+    # Retrieve all unique last names from the Student table.
+    unique_last_names = dj.U('last_name') & Student
+    ```
 
-# Find all students from California
-Student - "home_state = 'CA'"
-```
-
-2. **Restriction by a Sequence and by a `dj.List`**
-When a query is further restricted by a sequence (e.g. a list) of conditions, the conditions are applied by logical adjunction, i.e. *logical or*.
-```python
-# List young students and those who are from outside California
-Student & ["home_state<>'CA'", "date_of_birth >= '2010-01-01'"]
-
-# List older students from California
-Student - ["home_state<>'CA'", "date_of_birth >= '2010-01-01'"]
-```
-
-To apply conditions by logical conjunction (*logical and*), the conditions are either applied succesively or are applied using the special `dj.AndList` sequence.
-```python
-# List young students from outside California
-Student & "home_state<>'CA'" & "date_of_birth >= '2010-01-01'"
-# This can be equivalently written as
-Student & dj.AndList(["home_state<>'CA'", "date_of_birth >= '2010-01-01'"])
-```
-
-3. **Restriction by a Subquery**
-```python
-# Find students who have taken a specific course
-Student & (Enroll & "course_id = 'CS101'")
-
-# Find students who have not taken a specific course
-Student - (Enroll & "course_id = 'CS101'")
-```
-
-4. **Restriction by `dj.Top`**
-```python
-# Get the first 5 students (in undefined order)
-Student & dj.Top(5)
-
-# Get the youngest 5 students
-Student & dj.Top(5, order_by="date_of_birth DESC")
-```
-
-## Operator: Projection `A.proj(...)`
-
-Projection selects specific attributes and can rename them:
-
-```python
-# Get student names and emails
-Student.proj('first_name', 'last_name', 'email')
-
-# Rename attributes during projection
-Student.proj(first='first_name', last='last_name')
-```
-
-The result of projection always includes the primary key of its operand.
-The primary key attributes cannot be projected out (but they can be renamed).
-
-```python
-Student.proj() # returns the primary key attributes
-```
-
-Project can also calculate new attributes that are derived from the operand attributes.
-
-```python
-Student.proj(
-  full_name='CONCAT(first_name, " ", last_name)'
-  age='DATE_DIFF(CURDATE(), date_of_birth)/365.25', 
-  )  # this will return (student_id, full_name, age)
-```
-
-The `...` (ellipsis) specification is used to include all attributes of the operand. This can be used in compbination with `-` to exclude certain attributes.
-
-```python
-Student.proj(..., -'email') # returns all attributes except email
-```
-
-The primary key of the projection result is the same as that of the operand.
-
-## Operator: Join `A * B`
-
-The join operator `A * B` combines rows composed from the cartesian product of the rows in `A` and `B` restricting the result to semantically matching rows.
-
-```python
-# Include student information in the enrollment table
-Enroll * Student
-
-# Include course information in the enrollment table. 
-# Course and Enroll share a common attribute `course_id`, 
-# which is inherited from the `Course` table by a foreign key.
-Enroll * Course
-```
-
-## Operator: Aggregation `A.aggr(B, ...)`
-
-Aggregation `A.aggr(B, ...)` projects attributes from table `A` similar to `A.proj(...)` but it also allows aggregation calculations on groups of data from table `B` grouped by the primary key of table `A`.
-`A` and `B` must be semantically compatible. Further, `B` must have all the attributes `A`'s primary key with the same names.
-This ensures correct grouping and aggregation.
-
-Using SQL terminology, aggregation is implemented as a left join followed by a `GROUP BY` clause on the primary key of `A` and the specified aggregation functions applied to expressions onthe attributes of `B`.
-
-
-```python
-# Calculate the average grade of students
-Student.aggr(Grade, 
-  full_name='CONCAT(first_name, " ", last_name)', 
-  avg_grade='AVG(grade)'
-)
-```
-which is equivalent to SQL:
-```sql
-SELECT 
-    CONCAT(first_name, " ", last_name) as full_name,
-    AVG(grade) as avg_grade
-FROM Student
-LEFT JOIN Grade USING student_id
-GROUP BY student_id
-```
-The result of aggregation is a table with the same primary key as that of the operand.
-
-## Operator: Union `A + B`
-
-Union combines rows from multiple tables with compatible schemas:
-
-```python
-# Combine current and former students
-(CurrentStudent + FormerStudent).fetch()
-```
-
-## Universal Sets `dj.U()`
-
-Universal sets represent all possible combinations of values of a set of attributes.
-From this perspective, they are symbolic representations rather than actual results:
-They can be useful in queries but can never be queried by themselves.
-
-```python
-# Get the list of all last names from the student table
-dj.U('last_name') & Student
-```
-In this case, `dj.U('last_name')` is the set of all possible values (of any type) for a field "last_name". 
-By itself, it is not a valid query, but it can be used in combination with other queries to restrict the set of possible values.
-
-Without any attributes, `dj.U()` describes the one single universe.
-It can be used in aggregation operations to compute universal aggregations.
-
-For example,
-```python
-# count all students
-dj.U().aggr(Student, n_students='COUNT(student_id)')
-```
-counts all students.
-
-Here `dj.U()` becomes necessary because in DataJoint, aggregation requires a grouping entity and `dj.U()` plays this role when aggregating all entries.
-
-The primary key of this aggregation is the empty set, indicating that only one entry can exist.
+2.  **Universal Aggregation:** `dj.U()` (with no arguments) serves as the grouping entity for aggregations that span all rows of a table, rather than grouping by the primary key of another table.
+    ```python
+    # Count the total number of students.
+    total_student_count = dj.U().aggr(Student, n_students='COUNT(student_id)')
+    # The result is a table with one row and one attribute 'n_students'.
+    # The primary key of this result is the empty set.
+    ```
 
 -----------
 # Computation
@@ -1090,7 +1137,7 @@ def make(self, key, **make_opts) -> None:
 The `make` method consists of three essential steps:
 1. `Fetch`: Retrieve input data from upstream tables based on key.
 2. `Compute`: Process the retrieved data to generate new results.
-3. `Insert`: Store the computed results using self.insert1().
+3. `Insert`: Store the computed results with `self.insert1()`, also inserting corresponding entires into  part tables (if any).
 
 DataJoint implements computation as a native part of its data model.
 In a sense, it's quite similar to spreadsheets where some cells contain values and other cells represent formulas.
