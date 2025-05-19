@@ -487,7 +487,7 @@ Type adaptors must be **accessible at the time of schema declaration** and maint
 Generally, revisions of adaptors must maintain backward compatibility.
 They are implemented as classes subclassing from `dj.CustomType` and must implement the following methods:
 1. `type_name` (property) → str -- returns the name by which the
-1. `stored_type` (property str)  -- returns the **underlying storage type** (e.g. `blob`, `file`, or another `<adoptor_name>`)
+1. `stored_type` (property str)  -- returns the **underlying storage type** (e.g. `blob`, `object`, or another `<adoptor_name>`)
 2. `put(self, key, user_object) -> stored_object`
 3. `get(self, key, stored_object) -> user_object`
 
@@ -498,8 +498,8 @@ The custom type is activated by registering it with the DataJoint client using p
 | **`type_name`** | **`stored_type`** | **Purpose** |
 |------------|--------------|-------------|
 | `<dj_blob>` | `blob` | Converts arbitrary Python structures into a `blob`, ensuring backward compatibility. |
-| `<zarr2p>` | `file` | Converts two-photon imaging data into compressed Zarr objects. |
-| `<dj_npy>` | `file` | Serializes Python objects into Numpy-compatible files. |
+| `<zarr2p>` | `object` | Converts two-photon imaging data into compressed Zarr objects. |
+| `<dj_npy>` | `object` | Serializes Python objects into Numpy-compatible files. |
 
 Custom types typically implemented in separate modules and loaded as [Python plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/)
 
@@ -1118,33 +1118,33 @@ Universal sets, denoted by `dj.U(...)`, are symbolic constructs representing the
 -----------
 # Computation
 
-DataJoint integrates **computation directly into its data model**, similar to how spreadsheets update **formula-driven cells** when inputs change.
-Some tables are designated for **automated computations**, meaning:
-- **Users cannot manually insert data** into these tables.
-- **Results are generated automatically** based on predefined computations.
-- **New inputs trigger cascaded computations** of dependent results.
+DataJoint integrates computation as an intrinsic component of its data model. Certain tables, designated as auto-populated (i.e., `dj.Imported` or `dj.Computed` tiers), represent the results of computations rather than directly ingested data. The population of these tables is governed by methods defined within their corresponding class definitions.
 
-This ensures **data consistency, integrity, and reproducibility** throughout the pipeline.
+Key characteristics of automated computation in DataJoint include:
+- **Restricted Manual Insertion**: Users SHALL NOT manually insert data into auto-populated tables.
+- **Automated Result Generation**: Data in these tables are generated exclusively through predefined computational logic.
+- **Cascaded Execution**: The introduction of new data or dependencies in upstream tables MAY trigger the automated computation of dependent results in downstream auto-populated tables.
 
-## The `make` Method: Defining Computation
+This model is designed to ensure data consistency, integrity, and computational reproducibility throughout the data pipeline.
 
-Auto-populated tables must implement the `make(self, key)` method, which defines **how computations are performed**.
+## The `make` Method: Defining Computational Logic
+
+Auto-populated tables (i.e., tables of tier `dj.Imported` or `dj.Computed`) MUST implement a method named `make`, which encapsulates the logic for populating a single entry (or a master entry and its associated part entries) in the table.
 
 **Method Signature**:
 ```python
 def make(self, key, **make_opts) -> None:
 ```
-The `make` method consists of three essential steps:
-1. `Fetch`: Retrieve input data from upstream tables based on key.
-2. `Compute`: Process the retrieved data to generate new results.
-3. `Insert`: Store the computed results with `self.insert1()`, also inserting corresponding entires into  part tables (if any).
 
-DataJoint implements computation as a native part of its data model.
-In a sense, it's quite similar to spreadsheets where some cells contain values and other cells represent formulas.
-New inputs causes an automated and cascaded computations of new results.
-In DataJoint's some tables are designated for automated computations.
-This means that users cannot simply insert data into them.
-Data must be calculator according to a computation that the table class specifies.
+The `key` argument is a dictionary representing a single primary key value from the table's *key source*, identifying the specific entity for which the computation is to be performed.
+Optional `make_opts` MAY be passed to customize the behavior of the make method.
+
+The execution of a make method for a given key typically involves three principal steps:
+1. **Fetch Data:** Retrieve necessary input data from upstream (parent) tables, restricted by the provided key.
+2. **Compute Results:** Process the fetched data to generate the required output values for the attributes of the current table and its part tables (if any).
+3. **Insert Results:** Store the computed results into the current table (and its part tables, if applicable) using the `self.insert1()` method (and `self.Part.insert()` for any Part tables). The inserted record MUST include the attributes from the input key along with the newly computed attributes.
+
+Example: `ProcessedSignal` Computation
 
 **Example: Computing an Average Signal**
 ```python
@@ -1156,61 +1156,132 @@ class ProcessedSignal(dj.Computed):
     avg_signal: float
     """
 
-    def make(self, key):
-        # Step 1: Fetch input data
-        raw_data = (RawSignal & key).fetch1("signal")
+    def make(self, key: dict) -> None:
+        # Step 1: Fetch input data from upstream table.
+        raw_signal_value = (RawSignal & key).fetch1("signal")
 
-        # Step 2: Compute the result
-        avg_value = raw_data.mean()
+        # Step 2: Compute the result.
+        average_signal_value = raw_signal_value.mean()
 
-        # Step 3: Insert the computed result
-        self.insert1({**key, "avg_signal": avg_value})
+        # Step 3: Insert the computed result.
+        self.insert1({**key, "avg_signal": average_signal_value})
 ```
-This approach ensures that computations are traceable and reproducible, with outputs always linked to their inputs.
+This structured approach ensures that all computed data are traceable to their inputs and the specific computational logic applied.
 
-Each make call runs inside an ACID-compliant transaction, ensuring:
+Each invocation of the `make` method for a single `key` SHALL be executed within a single, ACID-compliant database transaction. This guarantees:
 
-* **Computational integrity** – Results are correctly referenced to inputs.
-* **Atomic execution** – Either the computation fully completes, or no partial data is stored.
+- **Computational Integrity:** Results are correctly and uniquely associated with their specific set of inputs defined by `key`.
+- **Atomic Execution:** The entire operation (fetch, compute, insert for the given `key`) either completes successfully, or, in case of an error, no partial data is persisted in the database, maintaining a consistent state.
 
 ## Handling Long-Running Computations
-For long-running computations (e.g., processing large datasets for hours or days), holding a continuous database transaction can block critical operations. To mitigate this, DataJoint supports deferred transaction verification, where:
+For computations that are expected to be long-running (potentially hours or days), maintaining an open database transaction for the entire duration of the `make` method can lead to operational issues, such as blocking other database operations or exceeding transaction timeout limits.
 
-* Computation is performed outside the transaction.
-* Inputs are re-verified inside a minimal transaction.
+To address this, DataJoint supports a deferred transaction verification mechanism. This involves separating the data fetching and computation from the final data insertion and verification, minimizing the duration of the database transaction. This is achieved by implementing three distinct methods instead of a single make method:
 
-This is done by splitting make into three methods:
+1. `make_fetch(self, key: dict) -> object`:
+  * Retrieves all necessary input data from the database based on `key`.
+  * This method executes outside the main insertion transaction.
+  * The returned `fetched_data` object is passed to `make_compute`.
 
-1. `make_fetch(key)`: Retrieves input data before computation.
-2. `make_compute(key, fetched)`: Performs computation outside the transaction.
-3. `make_insert(key, fetched, computed)`: Re-fetches and verifies inputs, then inserts results in a transaction.
+2. `make_compute(self, key: dict, fetched_data: object) -> object`:
+  * Performs the primary computation using the `fetched_data`.
+  * This method executes outside any database transaction.
+  * The returned `computed_results` object is passed to `make_insert`.
 
-**Pseudocode for Deferred Transaction Handling:**
+3. `make_insert(self, key: dict, fetched_data: object, computed_results: object) -> None`:
+  * This method executes within a minimal database transaction.
+  * Prior to calling `make_insert`, DataJoint SHOULD re-fetch the input data (by calling `make_fetch` a second time) to verify that inputs have not changed since the initial fetch. 
+  * If inputs are verified to be consistent, DataJoint calls `make_insert`.
+  * If inputs have changed, the transaction SHOULD be rolled back, and the entire computation is cancelled for subsequent retries.
+
+The same example from above will appear as follows:
+
+**Example: Computing an Average Signal with short transaction time -- three-part make method**
+```python
+@schema
+class ProcessedSignal(dj.Computed):
+    definition = """
+    -> RawSignal
+    ---
+    avg_signal: float
+    """
+
+    def make_fetch(self, key: dict) -> None:
+        # Step 1: Fetch input data from upstream table.
+        raw_signal_value = (RawSignal & key).fetch1("signal")
+        return raw_signal_value,
+
+
+    def make_compute(self, key: dict, fetched: tuple) -> tuple:
+        raw_signal_value, = fetched
+        # Step 2: Compute the result.
+        average_signal_value = raw_signal_value.mean()
+        return average_signal_value,
+
+    def make_insert(self, key: dict, fetched: tuple, computed: tuple) -> None:
+        average_signal_vaue, = computed
+        # Step 3: Insert the computed result.
+        self.insert1({**key, "avg_signal": average_signal_value})
 ```
+
+An alternative implementation of this three-part make method is to convert a normal make method into a generator yielding the fetched data and computed results. This effectively implements the three-part make method, but is more succinct.
+
+The example below illustrates this approach:
+
+**Example: Computing an Average Signal with short transaction time -- Generator Implementation**
+```python
+@schema
+class ProcessedSignal(dj.Computed):
+    definition = """
+    -> RawSignal
+    ---
+    avg_signal: float
+    """
+
+    def make(self, key: dict) -> None:
+        # Step 1: Fetch input data from upstream table.
+        raw_signal_value = (RawSignal & key).fetch1("signal")
+        computed = yield raw_signal_value,   # yield the fetched data and receive computed results
+
+        if computed is None:
+            # Step 2: Compute the result.
+            average_signal_value = raw_signal_value.mean()
+            computed = average_signal_value,
+            yield computed  # yield the computed results
+
+        # Step 3: Insert the computed result.
+        average_signal_value, = computed
+        self.insert1({**key, "avg_signal": average_signal_value})
+        yield None  # signals the end of computation
+```
+
+DataJoint's internal logic will automatically call the three methods in the correct order, as illustrated in the pseudocode below:
+**Pseudocode for Deferred Transaction Handling:**
+```python
 fetched = self.make_fetch(key)
 computed = self.make_compute(key, fetched)
 
-begin transaction
+<begin transaction>
 fetched_again = self.make_fetch(key)
 
-if fetched != fetched_again:
-    rollback transaction
+if fetched != fetched_again:   # peforms a deep comparison of the two tuples
+    <rollback transaction>
 else:
     self.make_insert(key, fetched, computed)
-    commit transaction
+    <commit transaction>
 ```
 
-- This **minimizes transaction time** while ensuring input data remains unchanged between `fetch` and `insert`.
-- The **trade-off** is fetching the input data **twice**, but this prevents blocking database operations.
+This strategy minimizes the time database locks are held, at the cost of fetching input data twice. 
+It is recommended for computations where the computation time significantly exceeds the data fetching time.
+It is the user's responsibility to segregate the functionality into the three distinct parts (all fetches in `make_fetch`, all computations in `make_compute`, and all inserts in `make_insert`). However, in future standards, DataJoint may enforce this segregation.
 
-## Key Source: Determining What Needs to Be Computed
-The **key source** defines which entries **require computation**.
-* It is automatically determined by DataJoint.
-* It is formed as the join of all tables referenced by foreign keys in the table's primary key.
-* Existing computed entries are excluded, ensuring only new computations are performed
+### Key Source: Determining Entries for Computation
+The key source for an auto-populated table defines the set of primary key values for which the `make` method needs to be executed. DataJoint automatically determines the key source.
+* **Formation:** The key source is derived from the join of all parent tables referenced by foreign keys present in the primary key definition of the auto-populated table. Only the primary key attributes of these parent tables are projected.
+* **Exclusion:** Entries for which data already exists in the auto-populated table are excluded from the key source. This ensures that computations are performed only for new or missing entries.
 
-### Example: Understanding Key Source
-Consider a computed table that processes images recorded by different methods:
+**Example: Key Source for a Computed Table**
+Consider a computed table `ProcessedImage` that processes images recorded by different methods:
 ```python
 @schema
 class ProcessedImage(dj.Computed):
@@ -1226,12 +1297,20 @@ The key source in this case is:
 acq.Image.proj() * ProcessingMethod.proj() - ProcessedImage
 ```
 
+This expression identifies all combinations of Image and ProcessingMethod primary keys that do not yet have a corresponding entry in ProcessedImage.
+
+
 ## Computed vs Imported Tables
+
+Auto-populated tables are primarily categorized into two tiers: `dj.Computed` and `dj.Imported`.
+The distinction lies in the origin of their input data and the implications for reproducibility:
 
 | **Tier** | **Purpose** | **Reproducibility** | **Data Source** |
 |---|---|---|---|
 | **Computed (`dj.Computed`)** | Fully reproducible computations | ✅ Guaranteed | Uses only **pipeline data** |
 | **Imported (`dj.Imported`)** | Data ingested from external sources | ❌ Not guaranteed | Reads from **external sources (e.g., instruments, APIs)** |
+
+While both tiers use the make (or make_fetch/make_compute/make_insert) method for populating entries, dj.Computed tables are designed to ensure that, given the same upstream pipeline data and the same computational code, the results are identical. dj.Imported tables introduce external dependencies, meaning reproducibility also relies on the stability and versioning of these external sources.
 
 ## Summary of automated computing
 - **DataJoint integrates computation directly into its data model**, similar to how spreadsheets update formulas when inputs change.
