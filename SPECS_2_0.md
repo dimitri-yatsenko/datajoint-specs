@@ -739,7 +739,10 @@ The structured project data repository serves as a comprehensive, publishable co
 The export method recreates the data repository in full at another location.
 DataJoint offers tools to restore the database from the file repository using the tabular data, supporting data publishing and pipeline cloning alongside the data.
 
--------
+
+------------
+
+
 # Data Operations
 
 Data operations alter the state of the data stored in the database.
@@ -1163,7 +1166,7 @@ Universal sets, denoted by `dj.U(...)`, are symbolic constructs representing the
     # The primary key of this result is the empty set.
     ```
 
-3. **Aggregation by arbitary groupings:** `dj.(<attribites>)` creates a new grouping entity with an arbitrary primary key for use in aggregations for which no existing entity type fits that purpose.
+3. **Aggregation by arbitary groupings:** `dj.U(<attribites>)` creates a new grouping entity with an arbitrary primary key for use in aggregations for which no existing entity type fits that purpose.
 
     ```python
     # count how many students per year and month of birth 
@@ -1202,12 +1205,11 @@ The execution of a make method for a given key typically involves three principa
 2. **Compute Results:** Process the fetched data to generate the required output values for the attributes of the current table and its part tables (if any).
 3. **Insert Results:** Store the computed results into the current table (and its part tables, if applicable) using the `self.insert1()` method (and `self.Part.insert()` for any Part tables). The inserted record MUST include the attributes from the input key along with the newly computed attributes.
 
-Example: `ProcessedSignal` Computation
 
 **Example: Computing an Average Signal**
 ```python
 @schema
-class ProcessedSignal(dj.Computed):
+class SignalAverage(dj.Computed):
     definition = """
     -> RawSignal
     ---
@@ -1237,27 +1239,27 @@ For computations that are expected to be long-running (potentially hours or days
 To address this, DataJoint supports a deferred transaction verification mechanism. This involves separating the data fetching and computation from the final data insertion and verification, minimizing the duration of the database transaction. This is achieved by implementing three distinct methods instead of a single make method:
 
 1. `make_fetch(self, key: dict) -> object`:
-  * Retrieves all necessary input data from the database based on `key`.
-  * This method executes outside the main insertion transaction.
-  * The returned `fetched_data` object is passed to `make_compute`.
+   * Retrieves all necessary input data from the database based on `key`.
+   * This method executes outside the main insertion transaction.
+   * The returned `fetched_data` object is passed to `make_compute`.
 
 2. `make_compute(self, key: dict, fetched_data: object) -> object`:
-  * Performs the primary computation using the `fetched_data`.
-  * This method executes outside any database transaction.
-  * The returned `computed_results` object is passed to `make_insert`.
+   * Performs the primary computation using the `fetched_data`.
+   * This method executes outside any database transaction.
+   * The returned `computed_results` object is passed to `make_insert`.
 
 3. `make_insert(self, key: dict, fetched_data: object, computed_results: object) -> None`:
-  * This method executes within a minimal database transaction.
-  * Prior to calling `make_insert`, DataJoint SHOULD re-fetch the input data (by calling `make_fetch` a second time) to verify that inputs have not changed since the initial fetch. 
-  * If inputs are verified to be consistent, DataJoint calls `make_insert`.
-  * If inputs have changed, the transaction SHOULD be rolled back, and the entire computation is cancelled for subsequent retries.
+   * This method executes within a minimal database transaction.
+   * Prior to calling `make_insert`, DataJoint SHOULD re-fetch the input data (by calling `make_fetch` a second time) to verify that inputs have not been modified since the initial fetch. 
+   * If inputs are verified to be consistent, DataJoint calls `make_insert`.
+   * If inputs have changed, the transaction SHOULD be rolled back, and the entire computation is cancelled for subsequent retries.
 
 The same example from above will appear as follows:
 
 **Example: Computing an Average Signal with short transaction time -- three-part make method**
 ```python
 @schema
-class ProcessedSignal(dj.Computed):
+class SignalAverage(dj.Computed):
     definition = """
     -> RawSignal
     ---
@@ -1289,7 +1291,7 @@ The example below illustrates this approach:
 **Example: Computing an Average Signal with short transaction time -- Generator Implementation**
 ```python
 @schema
-class ProcessedSignal(dj.Computed):
+class SignalAverage(dj.Computed):
     definition = """
     -> RawSignal
     ---
