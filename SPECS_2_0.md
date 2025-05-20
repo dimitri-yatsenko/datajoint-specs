@@ -202,58 +202,68 @@ Since DataJoint uses relational database backends, all data can be accessed thro
 
 # Pipeline Design
 
-A **data pipeline** supporting a scientific study is  a structured system for managing **scientific data, dependencies, computations, and execution workflows**.
-It organizes **structured data, metadata, and large data objects**, ensuring **data integrity, traceability, and automated processing**.
+A **data pipeline** within the DataJoint framework is a structured system designed to manage scientific data, its inherent dependencies, associated computations, and execution workflows.
 
-## **Pipeline ≡ Python Package**
+## Pipeline ≡ Python Package
 
-A **DataJoint pipeline** is typically implemented as a **dedicated Python package**, where **modules correspond to database schemas**.
-This structure ensures that data, computations, and dependencies remain **organized, traceable, and reproducible**.
+A DataJoint pipeline SHALL be implemented as a dedicated Python package. Within this package, Python modules correspond to database schemas. This architectural convention ensures that data, computations, and their interdependencies are organized, traceable, and reproducible.
 
-A **DataJoint pipeline follows a directed acyclic graph (DAG) structure**, where:
+A DataJoint pipeline adheres to a **Directed Acyclic Graph (DAG)** structure, wherein:
 
-- **Nodes** represent **Python modules** (database schemas).
-- **Edges** represent **dependencies**, including:
-  - **Python import dependencies** between modules.
-  - **Referential dependencies** (bundles of foreign keys) between tables, defining data flow.
-
+-   **Nodes** represent Python modules, which in turn correspond to database schemas.
+-   **Edges** represent dependencies between these modules. These dependencies include:
+    -   Standard Python import dependencies between modules.
+    -   Referential dependencies between tables across different schemas (bundles of foreign keys dependencies), which define the data flow and relational structure of the pipeline.
 
 ![Pipeline Design](figures/pipeline-illustration.png)
 
-> **Cyclical dependencies are not allowed** – All referential constraints within a schema must also form a **DAG**, meaning that foreign keys cannot create circular dependencies.
-> This acyclicity applies to the import dependencies between modules and the bundled foreign key dependencies between schemas.
+> **Constraint: Acyclicity of Dependencies**
+>
+> Cyclical dependencies are strictly prohibited at multiple levels:
+> - All referential constraints (foreign keys) *within* a single schema MUST form a DAG.
+> - The dependencies *between* schemas (formed by foreign keys linking tables in different schemas, and by Python import statements between modules) MUST also collectively form a DAG.
+>
+> This ensures a unidirectional flow of data and computational dependencies throughout the pipeline.
 
-## **Database Schema ≡ Python Module**
 
-Each **database schema** in DataJoint corresponds to a **Python module**, serving as a **namespace** for organizing related tables. Maintaining a **one-to-one mapping** between database schemas and Python modules ensures modular, maintainable code.
+## Database Schema ≡ Python Module
+
+Each database schema in a DataJoint pipeline SHALL correspond to a distinct Python module. This module serves as a namespace for organizing a collection of logically related tables. Adherence to a one-to-one mapping between database schemas and Python modules promotes modularity and maintainability of the pipeline code.
 
 ![Schema Design](figures/schema-illustration.png)
 
-- **Schemas in the database** represent a group of logically related tables.
-- **Schemas in Python** are structured as **separate modules**, keeping the code modular and scalable.
-- **Foreign keys within a schema must also form a DAG**, ensuring **a unidirectional flow of data dependencies**.
+Key principles of this mapping include:
 
-Maintaining this structured mapping ensures that the **database and code remain in sync**, facilitating reproducibility and collaboration.
+-   **Database Schemas**: Function as containers for groups of logically related tables within the relational database.
+-   **Python Modules**: Structure the pipeline's Python code into modular and scalable units, each representing a database schema.
+-   **Intra-Schema Dependencies**: Foreign key relationships between tables *within* the same schema MUST also form a DAG, reinforcing a unidirectional data dependency flow at the schema level.
 
-## **Database Table ≡ Python Class**
+This structured correspondence between the database organization and the codebase ensures synchronization, thereby facilitating reproducibility, collaboration, and long-term maintenance.
 
-In DataJoint, **each table is represented as a Python class**, following a consistent naming convention:
+## Database Table ≡ Python Class
 
-| Python | Database |
+In the DataJoint framework, each database table SHALL be represented by a Python class. A consistent naming convention MUST be followed to map Python class names to database table names:
+
+| Python Construct                     | Database Construct                      |
 |---|---|
 | **Class Names** | Written in **CamelCase** |
 | **Table Names** | Written in **snake_case** |
 | **Fully Qualified Python Class Name** | `<module>.<ClassName>` |
 | **Fully Qualified Database Table Name** | `<schema_name>.<table_name>` |
 
-**Example:**
-- **Python Class:** `scan.ScanLocation` ≡ **Database Table:** `scan.scan_location`
+**Example Mapping:**
 
-This **naming convention** ensures clarity, consistency, and seamless alignment between the **Python implementation** and the **underlying database schema**.
+-   **Python Class:** `scan.ScanLocation`
+-   **Database Table:** `scan.scan_location`
+
+This naming convention ensures clarity, consistency, and unambiguous alignment between the Python implementation of the pipeline logic and the underlying relational database schema.
+
+
 
 ## Table Tiers
 
-Each table is assigned to one of **four tiers**, defining how data is populated and maintained. In diagrams and visualizations, **color codes** are used to distinguish these tiers:
+Each table within a DataJoint pipeline SHALL be assigned to one of four predefined **tiers**. These tiers classify tables based on their role and the method by which their data are populated and maintained. In graphical representations of the pipeline (e.g., diagrams generated by `dj.Diagram`), distinct color codes are conventionally used to visually differentiate these tiers:
+
 
 | Tier | Description | Color Code (in Diagrams) |
 |---|---|---|
@@ -262,80 +272,147 @@ Each table is assigned to one of **four tiers**, defining how data is populated 
 | `imported` | Data automatically ingested from external sources (e.g., raw data files, external databases). | **Blue** |
 | `computed` | Data generated from upstream tables through **automated computations**. | **Red** |
 
-> **Note:**
-> GitHub Markdown does not support colored text formatting, but these color codes are **used in diagrams** and can be applied in external documentation formats such as HTML, LaTeX, or GUI-based schema visualization tools.
+> **Note on Color Codes:**
+> Standard GitHub Flavored Markdown (GFM) does not support the direct rendering of colored text. However, these color codes are a standard convention used in DataJoint's graphical schema visualization tools (e.g., `dj.Diagram` outputs) and MAY be applied in other documentation formats that support rich text styling, such as HTML or LaTeX.
 
-These tiers ensure **clear separation** between manually curated, automatically imported, and computed data, preserving **data integrity and provenance** across the pipeline.
+
+The classification of tables into these tiers provides a clear conceptual separation between manually curated data, externally sourced data, and computationally derived data.
+This distinction is fundamental to maintaining data integrity, provenance, and understanding the data flow within the pipeline.
 
 
 # Table Definition
 
-A table is defined by defining its elements, which include:
-- **Table name** – Defined as a class in Python and translated into a database table name.
-- **Table tier** – Specifies the table's role in the pipeline: `lookup`, `manual`, `imported`, `computed`.
-- **Attributes** – Columns specifying the table's data structure: name, type, default value (optional), and comment (optional).
-- **Primary key** – The set of attributes jointly comprising the unique identifier for each row.
-- **Foreign keys** – Define dependencies on upstream tables.
-- **Indexes** – Optimize queries and enforce constraints.
+The definition of a table in DataJoint specifies its structural and functional characteristics within the pipeline. 
+Each table definition encompasses the following elements:
 
-A common way to define a table is to define its elements in a multi-line string as a class attribute `definition`:
+-   **Table Name**: The identifier for the table, defined as a Python class name and translated into a corresponding database table name according to specified [naming conventions](#database-table--python-class).
+-   **Table Tier**: The classification of the table (e.g., `lookup`, `manual`, `imported`, `computed`) which dictates its role and data population method, as defined in [Table Tiers](#table-tiers).
+-   **Attributes**: A set of named columns, each with a defined data type, an optional default value, and an optional descriptive comment. These define the data structure of the table.
+-   **Primary Key**: A designated set of attributes whose combined values uniquely identify each row within the table.
+-   **Foreign Keys**: References to primary keys in other (parent) tables, establishing relational dependencies and ensuring referential integrity.
+-   **Indexes**: Additional database indexes (beyond those implicitly created for primary and foreign keys) to optimize query performance or enforce uniqueness constraints on non-primary key attributes.
+
+A common method for specifying these elements is through a multi-line string assigned to a class attribute named `definition` within the table's Python class declaration.
+
+**Example: Basic Table Definition Structure**
 ```python
-@schema
-class TableName(dj.Table):
+@schema # Decorator associating the class with a DataJoint schema object
+class TableName(dj.Table): # Base class depends on the table tier
     definition = """
-    # comment
-    attr1: type
-    ---
-    attr2: type
+    # A descriptive comment for the table
+    primary_key_attribute_1 : type       # Comment for attribute 1
+    primary_key_attribute_2 : type       # Comment for attribute 2
+    ---                                  # Primary key separator
+    secondary_attribute_1   : type       # Comment for attribute 3
+    secondary_attribute_2   : type = default_value # Attribute with a default
+    -> ParentTable                       # Foreign key definition
+    index (secondary_attribute_1)        # Secondary index definition
     """
 ```
-However, other ways to define a table are also possible.
+While the `definition` string is a prevalent convention, alternative programmatic methods for defining table structures MAY be supported by specific DataJoint client implementations, provided they ultimately resolve to these fundamental elements.
+
 
 ## Attribute Definition
-The table definition comprises a set of attributes defined by their name, type, default value (optional), and comment (optional).
 
+Each attribute in a table definition SHALL be specified by its name, data type, an optional default value, and an optional comment. The syntax for defining an attribute within the `definition` string is:
+
+`attribute_name : type[ = default_value][ # comment]`
+
+Where:
+-   `attribute_name`: A valid identifier for the attribute.
+-   `type`: A DataJoint-supported [Attribute Type](#attribute-types).
+-   `default_value` (optional): A literal value to be used if no value is provided for this attribute during data insertion.
+    -   A special default value of `null` explicitly declares the attribute as nullable. An attribute without a default value is implicitly NOT NULL, unless it is part of a nullable foreign key. Primary key attributes SHALL NOT be nullable.
+-   `comment` (optional): A human-readable description of the attribute, typically preceded by a `#` character.
+
+**Examples of Attribute Definitions:**
 ```
-attribute_name: type
-attribute_name: type # comment
-attribute_name: type = default_value
-attribute_name: type = default_value # comment
+experiment_id   : int unsigned       # Unique identifier for the experiment
+recording_date  : date               # Date of data recording
+notes           : varchar(1000) = '' # Optional notes, defaults to empty string
+analysis_param  : float = null       # A nullable analysis parameter
 ```
-
-Comments and default values are optional.
-
-A special default value of `null` makes the attribute nullable. There is no other way to make an attribute nullable.
 
 ## Primary Key
 
-All tables must have a primary key: a set of attributes that uniquely identify each row.
-The primary key attributes are always the first attributes in the table definition.
-The primary key can have one attribute (simple primary key), multiple attributes (composite primary key), or zero attributes (singleton table). A singleton table cannot have more than one row.
+Every table in a DataJoint pipeline MUST have a primary key. The primary key is a set of one or more attributes whose collective values uniquely identify each row in the table.
 
-The primary separator `---` is required in each table definition.
-It separates the primary key attributes above from the secondary attributes below: all the attributes above the primary separator, jointly, comprise the primary key.
+-   **Specification**: Attributes constituting the primary key SHALL be listed first in the table `definition` string, appearing above a mandatory primary key separator line, which consists of three hyphens (`---`).
+-   **Composition**:
+    -   A primary key MAY consist of a single attribute (simple primary key).
+    -   A primary key MAY consist of multiple attributes (composite primary key).
+    -   A primary key MAY be empty (i.e., consist of zero attributes), defining a "singleton table." A singleton table can contain at most one row.
+-   **Constraints**:
+    -   Primary key attributes SHALL NOT have default values.
+    -   Primary key attributes SHALL NOT be nullable.
 
-Primary key attributes cannot have default values.
+**Example: Primary Key Definition**
+```python
+    definition = """
+    subject_id    : varchar(32)   # Part 1 of the composite primary key
+    session_id    : uint16        # Part 2 of the composite primary key
+    ---                           # Primary key separator
+    session_date  : date
+    experimenter  : varchar(64)
+    """
+```
+In this example, `(subject_id, session_id)` jointly form the primary key.
 
 ## Schema Normalization
 
-Tables must be designed in a normalized form where each table is designed to contain one well-defined entity type with the same attributes and uniquely identified by its primary key.
-All attributes must directly relate to the entity identified by the primary key.
+Tables within a DataJoint pipeline SHOULD be designed according to the principles of database normalization. The objective is to ensure that each table represents a single, well-defined entity type or relationship.
 
-Schema normalization aims to break up tables that are used to store multiple entity types into several tables, each containing one entity type.
+-   **Entity Integrity**: Each row in a table corresponds to a unique instance of the entity type that the table represents, uniquely identified by its primary key.
+-   **Attribute Relevance**: All non-key attributes within a table MUST directly describe a property of the entity identified by the primary key. 
+-   **Minimizing Redundancy**: Schema normalization aims to reduce data redundancy and improve data integrity by decomposing tables that represent multiple entity types or contain repeating groups of information into several, appropriately linked tables.
+
+Adherence to normalization principles facilitates data consistency, reduces anomalies during data modification, and improves the overall clarity and maintainability of the pipeline schema.
+
+## Foreign Keys
+
+A foreign key establishes a referential link between a "child" table (the table containing the foreign key definition) and a "parent" table (the table referenced by the foreign key).
+This link ensures **referential integrity, meaning that rows in the child table can only reference existing rows in the parent table.
+
+Foreign keys SHALL be defined on separate lines within the `definition` string of the child table, using the `->` operator to point to the Python class name of the parent table.
+
+### Syntax for Foreign Key Definition
+```
+-> ParentClassName
+-> [modifier[, modifier...]] ParentClassName
+-> [modifier[, modifier...]] ParentClassName.proj(new_name1=old_name1, ...)
+```
+Where:
+-   `ParentClassName`: The Python class name of the parent table being referenced.
+-   `modifier` (optional): Keywords such as `nullable` or `unique` that alter the properties of the foreign key attributes inherited into the child table or the constraint itself.
+    -   `nullable`: If specified, the foreign key attributes inherited into the child table's primary key become nullable *if they are part of the child's primary key*. If they are secondary attributes in the child, they are nullable if the parent's corresponding primary key attributes allow it or if the FK itself is marked nullable. This allows a child record to exist without referencing a parent record.
+    -   `unique`: If specified, creates a unique constraint on the foreign key attributes in the child table, ensuring a one-to-one or one-to-zero-or-one relationship from the parent to the child.
+-   `.proj(new_name=old_name, ...)` (optional): A projection clause that allows renaming of the primary key attributes inherited from the `ParentClassName`. This is useful if the default inherited names would conflict with existing attributes in the child table or if different naming is preferred.
+
+**Constraints:**
+-   Cyclical dependencies created by foreign keys are strictly prohibited. The collective graph of all foreign key relationships within and between schemas MUST be a Directed Acyclic Graph (DAG).
+-   A foreign key in DataJoint MUST reference the entirety of the primary key of the parent table. Referencing a non-primary key set of attributes or a subset of the parent's primary key is not permitted by this specification.
+
+### Effects of a Foreign Key Definition:
+
+1.  **Attribute Inheritance**: The primary key attributes of the `ParentClassName` are implicitly included in the attribute set of the child table if they are not already present. Their data types and properties (e.g., nullability, if modified) are derived from the parent's primary key.
+2.  **Referential Constraint**: A referential integrity constraint is established in the database, ensuring that values in the foreign key attributes of the child table must match existing primary key values in the `ParentClassName`.
+3.  **Implicit Index**: An index is automatically created on the foreign key attributes in the child table to optimize join operations and referential integrity checks.
 
 
 ## Indexes and Unique Constraints
-Besides the primary key, a table may have a number of secondary indexes on combinations of fields.
-An additional index may be used to speed up searched by those fields.
-This is done in the format `index (attr1, attr2)` or `unique index (attr1, ..., attrn)`.
 
-Example table with additional indexes:
+Beyond the implicit index created for the primary key, tables MAY define additional secondary indexes to optimize query performance or enforce uniqueness constraints on non-primary key attributes or combinations thereof.
+
+-   **Secondary Index**: Speeds up data retrieval operations that filter or sort by the indexed attribute(s). Defined using the syntax: `index (attribute_name_1, attribute_name_2, ...)`
+-   **Unique Index**: Enforces that the combination of values in the indexed attribute(s) is unique across all rows in the table. Defined using the syntax: `unique index (attribute_name_1, attribute_name_2, ...)`
+
+**Example: Table with Secondary and Unique Indexes**
 ```python
 @schema
 class Person(dj.Manual):
     definition = """
     # Table representing a person with unique identifiers
-    person_id        : uint32  # Unique person identifier
+    person_id        : uint32      # Unique person identifier (Primary Key)
     ---
     first_name       : varchar(50)
     last_name        : varchar(50)
@@ -343,265 +420,233 @@ class Person(dj.Manual):
     cell_phone       : varchar(15) = null
     email            : varchar(100) = null
 
-    index (last_name, first_name)
-    unique index (drivers_license)
-    unique index (cell_phone)
-    unique index (email)
+    index (last_name, first_name)  # Secondary index for faster name searches
+    unique index (drivers_license) # Ensures driver's license is unique (if not null)
+    unique index (cell_phone)      # Ensures cell phone is unique (if not null)
+    unique index (email)           # Ensures email is unique (if not null)
     """
 ```
-This definition allows fast searches by `last_name`, `(last_name, first_name)`, as well as by other attributes with indices.
-Note that a unique index on a nullable field does not prevent multiple rows with `null` in the unique field. In our example, two rows with `null` in the `drivers_license` field are allowed.
+This definition facilitates efficient searches by `(last_name, first_name)`. The unique indexes ensure data integrity for `drivers_license`, `cell_phone`, and `email`.
+
+> **Note on Nullable Unique Constraints:** A unique index on an attribute that permits `NULL` values allows multiple rows to contain `NULL` in that attribute, as `NULL` is generally not considered equal to another `NULL` for constraint purposes. The exact behavior MAY depend on the underlying database system (e.g., MySQL, PostgreSQL).
 
 
-## Foreign keys
-A foreign key from the child table to the parent table is defined by pointing `->` to the class name representing a parent table.
-Foreign keys are defined on separate lines by pointing to the class name representing a parent table.
+## Lookup Tables
 
-```
--> ParentClassName
--> [nullable, unique] ParentClassName
--> ParentClassName.proj(new_name=old_name)
-```
-Cyclical dependencies are not allowed. Foreign keys collectively must form a directed acyclic graph (DAG).
+Lookup tables (`dj.Lookup` tier) store static or semi-static reference data that is considered an integral part of the pipeline's schema definition rather than dynamic experimental data. Examples include controlled vocabularies, lists of experimental parameters, or standardized codes.
 
-Attribute properties can be `nullable` and `unique`.
+-   **Content Definition**: The initial content of a lookup table SHALL be provided as part of its class definition, typically via a class attribute named `contents`. This ensures that a new deployment of the pipeline will have these tables pre-populated with their defined reference data.
+-   **Mutability**: While initially defined with the schema, the contents of lookup tables MAY be updated or extended over the lifecycle of the pipeline, reflecting an evolution of the reference data. Such changes are typically managed as schema migrations or controlled updates.
 
-`.proj` is used to rename primary key attributes to allow changing foreign key attributes from the parent.
-
-A foreign key has the following effects:
-
-1. The primary key attributes of the parent table are included in the child table definition if they are not already included.
-2. A referential dependency is established between the child and the parent.
-3. An *implicit index* is created in the child table on the foreign key to speed up matches on foreign key attributes.
-
-DataJoint does not allow foreign keys that reference a set of attributes that is not the primary key of the parent table.
-
-## Lookup tables
-Lookup tables are special tables whose contents is considered part of the schema design rather than the project data: a fresh new pipeline deployment will have its lookup tables pre-populated.
-Therefore, the contents of a lookup table is provided as part of its table definition.
-This does not prevent the lookup tables from being updated as part of the schema evolution.
-
-For example, the following table specifies the periodic table of elements:
+**Example: `ChemicalElement` Lookup Table**
 ```python
 import datajoint as dj
 
-schema = dj.Schema('chemistry')
+schema = dj.Schema('chemistry') # Assumes 'schema' is a dj.Schema() object
 
 @schema
 class ChemicalElement(dj.Lookup):
     definition = """
     # Lookup table for chemical elements
-    atomic_number : uint8       # Atomic number
+    atomic_number : uint8       # Atomic number (Primary Key)
     ---
-    symbol        : char(2)          # Chemical symbol
-    name          : varchar(20)      # Element name
-    atomic_weight : decimal(7, 4)    # Standard atomic weight
+    symbol        : char(2)     # Chemical symbol
+    name          : varchar(20) # Element name
+    atomic_weight : decimal(7,4)  # Standard atomic weight
     """
     contents = [
         {'atomic_number': 1, 'symbol': 'H',  'name': 'Hydrogen',  'atomic_weight': 1.008},
         {'atomic_number': 2, 'symbol': 'He', 'name': 'Helium',    'atomic_weight': 4.0026},
         {'atomic_number': 3, 'symbol': 'Li', 'name': 'Lithium',   'atomic_weight': 6.94},
-        {'atomic_number': 4, 'symbol': 'Be', 'name': 'Beryllium', 'atomic_weight': 9.0122}
+        # ... additional elements
     ]
 ```
 
 ## Attribute Types
 
-DataJoint supports a **small set of fundamental types** for storing attributes in database columns.
-These types **abstract and simplify** the underlying SQL data types provided by relational backends ([PostgreSQL](https://www.postgresql.org/docs/current/datatype.html) and [MySQL](https://dev.mysql.com/doc/refman/8.4/en/data-types.html)) to align with the needs of **data science and experimental workflows**.
+DataJoint defines a standardized, concise set of fundamental attribute types for use in table definitions. 
+These types abstract the underlying SQL data types provided by supported relational database backends (e.g.,  ([PostgreSQL](https://www.postgresql.org/docs/current/datatype.html) and [MySQL](https://dev.mysql.com/doc/refman/8.4/en/data-types.html))), offering a consistent interface tailored for scientific data workflows.
+This specification prioritizes type names that are intuitive to users in scientific computing environments (e.g., `uint8` rather than SQL's `TINYINT UNSIGNED`).
 
-This specification prioritizes data types familiar to scientists (e.g., `uint8` instead of SQL's `tinyint unsigned`) to improve usability for **scientific applications**.
+### Core Attribute Types
 
-### **Core Attribute Types**
-A small set of core types shall be supported:
+The following core attribute types SHALL be supported by DataJoint implementations:
 
-| Category | Type | Description |
-| --- | --- | --- |
-| **UUID** | `uuid` | Universally unique identifier (RFC 4122). Default values are not supported. |
-| **Integers** | `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64` | Standard integer types. |
-| **Scientific** | `float32`, `float64` | Floating-point numbers. `NaN` is not supported in the MySQL backend. |
-| **Decimal** | `decimal(M,N)` | Fixed-point decimal with precision `M` and scale `N`. |
-| **Character Strings** | `char(N)`, `varchar(N)` | Fixed or variable-length character data. |
-| **Enumeration** | `enum('value1', 'value2', 'value3')` | A predefined set of allowed values. |
-| **Date** | `date` | ISO 8601 format. Special value `NOW` can be used as a default. |
-| **Time** | `timestamp` | Microsecond precision in UTC (ISO 8601). Special value `NOW` can be used as a default. |
-| **Binary Large Object (BLOB)** | `blob` | Stores large binary data inside the database. |
-| **Object Reference** | `object` | A reference to an **external object** managed by DataJoint (e.g., a file or dataset stored in an object store or file system). |
-| **Custom Type** | `<adaptor_name>` | User-defined [type adaptors](#type-adaptors) for specialized data handling. |
+| Category            | Type                                       | Description                                                                                                                               |
+| :------------------ | :----------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| **UUID** | `uuid`                                     | Universally Unique Identifier (RFC 4122). Default values are not supported for `uuid` attributes.                                           |
+| **Integers** | `int8`, `uint8`, `int16`, `uint16`,<br>`int32`, `uint32`, `int64`, `uint64` | Standard signed and unsigned integer types of varying bit widths.                                                                      |
+| **Floating-Point** | `float32`, `float64`                       | Single-precision (32-bit) and double-precision (64-bit) floating-point numbers. Note: `NaN` (Not a Number) behavior MAY vary by backend; e.g., MySQL does not natively support `NaN` in indexed `FLOAT` columns. |
+| **Decimal** | `decimal(M,N)`                             | Fixed-point decimal number with a total precision of `M` digits and `N` digits after the decimal point (scale).                             |
+| **Character Strings** | `char(N)`, `varchar(N)`                    | Fixed-length (`char`) or variable-length (`varchar`) character strings, where `N` specifies the maximum length.                               |
+| **Enumeration** | `enum('val1', 'val2', ...)`                | A type restricted to a predefined set of allowed string values.                                                                            |
+| **Date** | `date`                                     | Represents a calendar date (year, month, day) in ISO 8601 format (YYYY-MM-DD). A special default value of `NOW` MAY be used to set the current date upon insertion. |
+| **Time / Timestamp**| `timestamp`                                | Represents a point in time, typically with microsecond precision, stored in UTC. Values SHOULD conform to ISO 8601 format. A special default value of `NOW` MAY be used to set the current timestamp upon insertion. |
+| **Binary Large Object** | `blob`                                   | Stores large binary data directly within the database row (inline storage). Suitable for moderately sized binary objects.                 |
+| **Object Reference** | `object`                                   | Stores a reference (e.g., a key or path) to an external data object managed by DataJoint but stored outside the primary database (e.g., in an object store or file system). See [Object Types](#object-types). |
+| **Custom Type** | `<adaptor_name>`                           | A user-defined type managed by a [Custom Type Adaptor](#custom-types), allowing for specialized storage and handling of complex data structures. |
 
-### **Blob vs. Object**
-| Type | Best For | Where Data is Stored |
-| --- | --- | --- |
-| `blob` | **Raw binary data stored inside the database** | **Database storage (e.g., MySQL, PostgreSQL BLOB columns)** |
-| `object` | **Externally stored files, datasets, or objects** | **File systems, object stores (S3, GCS, Azure Blob), or network storage (NFS, SMB)** |
+### Distinction: `blob` vs. `object` Attribute Types
 
-## Object Types
-A **DataJoint pipeline** follows a **hybrid storage model**, where:
-- The **relational database** manages **structured metadata, dependencies, and transactions**.
-- The **object store** handles **large, unstructured scientific data** (e.g., images, multidimensional arrays).
+The `blob` and `object` types both handle non-scalar data, but differ in their storage strategy and typical use cases:
 
-This **scalable approach** maintains **fast querying, data integrity, and transactional consistency**, while enabling **flexible, distributed storage** of large datasets.
+| Type     | Intended Use                                       | Data Storage Location                                                                    |
+| :------- | :------------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| `blob`   | Raw binary data stored *directly within the database table row*. Suitable for relatively small to moderately sized binary data where inline storage is acceptable and efficient. | **Database System** (e.g., as `BLOB` or `BYTEA` columns in MySQL/PostgreSQL).             |
+| `object` | References to data entities stored *externally* to the primary database. Suitable for large files, datasets, or complex objects where external storage is preferred for scalability or management. | **External Storage Systems** (e.g., file systems, cloud object stores like S3/GCS/Azure Blob, network-attached storage). The database stores metadata and a reference key. |
 
-### **How Object-Typed Fields Work**
-In DataJoint tables, the `object` datatype enables **object-augmented schemas**, where structured metadata in the database references externally stored objects. These objects are:
-- **Inserted, retrieved, and managed** like standard database attributes.
-- **Stored using a structured key-naming convention**.
-- **Tracked in the database with metadata** such as format, size, checksum, and version.
 
-### The `dj.Object` Interface
+## Object Types (External Storage)
 
-To insert an object, the object field must receive an instance of a subclass of `dj.Object`. This subclass must implement:
+DataJoint pipelines often employ a **hybrid storage model** to manage large-scale scientific datasets efficiently. In this model:
+-   The **relational database** serves as the central repository for structured metadata, relational dependencies, and transaction management.
+-   An **external object store** is utilized for handling large, often unstructured or semi-structured, scientific data objects such as images, multidimensional arrays, videos, or specialized file formats.
 
-| **Method** | **Description** |
-|------------|----------------|
-| `put(self, store, key) -> dict` | Writes the object to storage and returns metadata (checksum, version, timestamp). |
-| `get(cls, store, key) -> "dj.Object"` | Reads the object from storage and reconstructs it. |
-| `get_meta(self) -> dict` | Retrieves metadata (size, checksum, version). |
-| `verify(self, store, key) -> bool` | Confirms that the object exists and is valid. |
+This approach leverages the strengths of relational databases for data integrity and querying, while utilizing the scalability and cost-effectiveness of dedicated object storage solutions for bulk data.
 
-### **Metadata Stored in the Database**
-Each stored object includes metadata for **efficient retrieval, validation, and tracking**:
-- **Object key** – Unique structured reference to the object.
-- **File format/extension** – The storage format (e.g., `.zarr`, `.tiff`).
-- **Size** – Object size in bytes.
-- **Checksum** – Hash for data integrity verification.
-- **Version** – Versioning identifier (if applicable).
+### How `object` Attributes Work
 
-## Custom Types
-Custom types allow DataJoint to **seamlessly integrate and manage diverse data types** as if they were stored directly in a database field.
-They handle the **conversion** between **complex scientific objects** (e.g. `networkx.Graph`, `zarr`, `png`) and **core attribute types**, ensuring compatibility with relational storage.
-DataJoint projects can define and maintain a collection of type adaptors that serve their aims.
+The `object` attribute type facilitates this hybrid model by enabling **object-augmented schemas**. Tables can include attributes of type `object`, which store references to data entities residing in an external store. These externally stored objects are:
 
-What Custom Types do:
-- **Enable flexible data handling** while maintaining database integrity.
-- **Convert non-standard data types** into a format storable in DataJoint tables.
-- **Retrieve stored data and reconstruct it** into its original form for use in computations.
+-   **Managed by DataJoint**: Their lifecycle (insertion, retrieval, deletion) is integrated with DataJoint operations.
+-   **Referenced via Keys**: Stored and retrieved using a structured key-naming convention or path, ensuring unambiguous linkage.
+-   **Tracked with Metadata**: The relational database stores metadata associated with each external object, such as its format, size, checksum, and version, facilitating efficient management and validation.
 
-Key Benefts of Custom Types:
-- [x] Extend DataJoint's capabilities to support scientific data types.
-- [x] Ensure compatibility with relational storage while enabling flexible data handling.
-- [x] Simplify retrieval and conversion of complex objects.
-- [x] Maintain backward compatibility with legacy data structures.
 
-Type adaptors must be **accessible at the time of schema declaration** and maintained continually for data operations to ensure compatibility.
-Generally, revisions of adaptors must maintain backward compatibility.
-They are implemented as classes subclassing from `dj.CustomType` and must implement the following methods:
-1. `type_name` (property) → str -- returns the name by which the
-1. `stored_type` (property str)  -- returns the **underlying storage type** (e.g. `blob`, `object`, or another `<adoptor_name>`)
-2. `put(self, key, user_object) -> stored_object`
-3. `get(self, key, stored_object) -> user_object`
+### The `dj.Object` Interface for Custom Object Handling
 
-The custom type is activated by registering it with the DataJoint client using plugins or similar mechanisms.
+To enable DataJoint to manage custom external object types, users MAY define Python classes that subclass `dj.Object`. Such classes MUST implement a specific interface to handle the serialization, storage, retrieval, and verification of these objects.
 
-**Example Type Adaptors**
+The required methods for a `dj.Object` subclass are:
 
-| **`type_name`** | **`stored_type`** | **Purpose** |
-|------------|--------------|-------------|
-| `<dj_blob>` | `blob` | Converts arbitrary Python structures into a `blob`, ensuring backward compatibility. |
-| `<zarr2p>` | `object` | Converts two-photon imaging data into compressed Zarr objects. |
-| `<dj_npy>` | `object` | Serializes Python objects into Numpy-compatible files. |
+| Method Signature                        | Description                                                                                                                                                              |
+| :-------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `put(self, store, key: str) -> dict`    | Writes the instance's data to the specified `store` (a configured object storage backend) under the given `key` (a unique identifier or path). Returns a dictionary of metadata (e.g., checksum, version, timestamp) to be stored in the database. |
+| `get(cls, store, key: str) -> "dj.Object"` | A class method that reads data from the `store` using the `key` and reconstructs an instance of the `dj.Object` subclass.                                                  |
+| `get_meta(self) -> dict`                | Returns a dictionary of metadata about the object instance (e.g., size, checksum, version), typically reflecting the state as stored or to be stored.                         |
+| `verify(self, store, key: str) -> bool` | Confirms that the object corresponding to `key` exists in the `store` and is valid (e.g., by checking its checksum or integrity). Returns `True` if valid, `False` otherwise. |
 
-Custom types typically implemented in separate modules and loaded as [Python plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/)
+### Metadata for External Objects
 
-Example type adaptors:
+For each attribute of type `object`, DataJoint (or the custom `dj.Object` implementation) SHALL ensure that relevant metadata is stored within the relational database alongside the reference. This metadata typically includes:
 
-- `<dj_blob>` - (core type: `blob`), converts an arbitrary python structure into a blob type, backward-copmatible with legacy blobs. Legacy blobs become attributes of type `<djblob>` in this new stanard.
-- `<zarr2p>` - (core type: `object`), converts two-photon movies into compressed zarr objects
-- `<npy>` - (core type: `object`), converts numpy array into a npy file 
-- `<numpy-zarr>` - (core type: `object`), converts numpy array into a zarr object
+-   **Object Key/Path**: The unique identifier or path used to locate the object in the external store.
+-   **File Format/Extension**: The storage format of the object (e.g., `.zarr`, `.tiff`, `.nwb`).
+-   **Size**: The size of the object in bytes.
+-   **Checksum**: A hash (e.g., MD5, SHA256) of the object's content for data integrity verification.
+-   **Version (optional)**: A version identifier if the object undergoes versioning.
+-   **Timestamp (optional)**: Timestamps for creation or last modification.
 
-### Using a CustomType in a DataJoint Table
-Once implemented, a type adaptor can be used in a DataJoint table by specifying it in a field definition
+## Custom Types (Type Adaptors)
+
+Custom types, also known as type adaptors, extend DataJoint's native type system to allow seamless integration and management of diverse scientific data structures as if they were standard attributes stored directly in database columns. They provide a mechanism for converting between complex Python objects or specialized file formats and one of DataJoint's [Core Attribute Types](#core-attribute-types) suitable for database storage.
+
+DataJoint projects MAY define and register a collection of custom type adaptors tailored to their specific data handling needs.
+
+**Functionality of Custom Types:**
+
+-   Enable the use of complex or non-standard data types within DataJoint tables while preserving database integrity and queryability.
+-   Define bidirectional conversion logic:
+    -   Transforming user-provided objects into a storable format upon insertion.
+    -   Reconstructing the original (or equivalent) Python objects from the stored format upon retrieval.
+-   Abstract storage details from the user, providing a consistent interface for data interaction.
+
+**Key Benefits:**
+
+-   Extends DataJoint's data modeling capabilities to a wide range of scientific data formats.
+-   Ensures compatibility with the relational storage model for complex data.
+-   Simplifies the handling (insertion, fetching) of specialized objects for end-users.
+-   Can facilitate backward compatibility with legacy data representations.
+
+**Implementation and Registration:**
+
+Type adaptors SHALL be implemented as Python classes subclassing from `dj.CustomType`. These classes MUST implement the following methods and properties:
+
+1.  `type_name` (property): A string representing the unique name by which this custom type is referenced in table definitions (e.g., `<my_custom_type>`).
+2.  `stored_type` (property): A string specifying the underlying DataJoint [Core Attribute Type](#core-attribute-types) (e.g., `blob`, `object`, `varchar(255)`, or another registered `<adaptor_name>`) used for actual storage in the database.
+3.  `put(self, user_object: object) -> object`: Converts the `user_object` (the Python object provided during insertion) into the `stored_type` format. The `key` argument (representing the primary key of the record being inserted) MAY be optionally accepted by `put` if its values are needed for the conversion or storage process (e.g., for constructing object paths if `stored_type` is `object`).
+4.  `get(self, stored_object: object) -> object`: Converts the `stored_object` (data retrieved from the database in `stored_type` format) back into the user-level Python object. The `key` argument MAY be optionally accepted by `get` if needed for reconstruction.
+
+Custom type adaptors MUST be accessible (e.g., imported) and registered with the DataJoint client (e.g., via a plugin mechanism or explicit registration call like `dj.register_type(MyCustomAdaptor)`) *before* any schemas using these types are declared or activated. Revisions to type adaptors SHOULD maintain backward compatibility to ensure existing data remains accessible and correctly interpretable.
+
+**Example Type Adaptors:**
+
+| `type_name`    | `stored_type` | Purpose                                                                                                 |
+| :------------- | :------------ | :------------------------------------------------------------------------------------------------------ |
+| `<dj_blob>`    | `blob`        | Serializes arbitrary Python objects into a generic `blob` format, often used for backward compatibility with older DataJoint blob storage. |
+| `<zarr_array>` | `object`      | Manages a NumPy array stored externally as a Zarr dataset, referenced by a path/key.                    |
+| `<tif_image>`  | `object`      | Manages an image stored externally as a TIFF file.                                                        |
+
+**Usage in Table Definition:**
+Once registered, a custom type adaptor is used in a table `definition` string by its `type_name`.
 
 ```python
-class Specimen(dj.Manual):
+class ProcessedData(dj.Computed):
     definition = """
-    specimen_id : uint16
+    -> upstream.Analysis
     ---
-    specimen_data : <dj_blob>  # uses BlobType to store images in the database
-    specimen_image : <dj_bioformats>  # stores image using Bio-Formats
+    computed_matrix : <zarr_array>    # Uses the <zarr_array> custom type
+    result_summary  : <dj_blob>       # Uses the <dj_blob> custom type
     """
 ```
-At insert time, the inserted value is supplied into the constructor of the registered `dj.CustomType`:
-
-```python
-Speciman.insert1({
-    'specimen_id': 103,
-    'specimen_data': {'preparer': 'John'},
-    'specimen_image', '/data/raw_img001.czi'})
-```
+During an `insert` operation, DataJoint will invoke the `put` method of the corresponding registered adaptor for attributes of custom types. During a `fetch` operation, the `get` method will be invoked.
 
 ## Master-Part Relationship
 
+The master-part relationship is a design pattern in DataJoint used to enforce **group integrity**, ensuring that a primary entity (the "master") and its dependent components (the "parts") are managed as a single atomic unit. This is crucial for scenarios where multiple related records must always exist together or not at all.
+
 ### Ensuring Group Integrity
 
-In many cases, **multiple related records must appear together or not at all**. For example:
-- A **billing system** must ensure that a bill is stored **with all its line items**.
-- A **segmentation algorithm** must record an image **along with all identified regions**.
+Consider a scenario where an experimental trial (master) produces multiple simultaneously recorded data streams (parts). The master-part pattern ensures that the trial record and all its associated data stream records are inserted together, and if the trial record is deleted, all its data stream records are also automatically deleted.
 
-To enforce **group integrity**, DataJoint provides the **master-part pattern**—a construct that ensures **atomic insertion and deletion** of related data entries.
+### Master-Part Pattern Definition
 
-### Master-Part Pattern
+-   **Master Table**: A standard DataJoint table of any tier that represents the primary entity.
+-   **Part Table(s)**: Tables that store dependent details or components of the master entity. Part tables SHALL be defined as **nested classes** within the Python class definition of their master table.
 
-A **master table** represents the **primary entity**, while **part tables** store dependent attributes that must always appear together with their master entry.
+The fully qualified Python class name for a part table follows the format: `module_name.MasterClassName.PartClassName`. The corresponding database table name will also reflect this nested structure (e.g., `<schema_name>.<master_table_name>__<part_table_name>`).
 
-- **Master tables** are declared as standard DataJoint tables and can be of any tier.
-- **Part tables** are defined as **nested classes** within the master table.
-- The **full class name** follows the format:
-  ```
-  module.MasterClass.PartClass
-  ```
-- The **database table name** also embeds the master and part name.
-- The **part table always has a foreign key** to its master table.
+A part table MUST always have a foreign key referencing its master table. To simplify this declaration, DataJoint provides the alias `-> master` within the `definition` string of a part table. This alias automatically establishes the foreign key relationship to the enclosing master table, inheriting its primary key attributes.
 
-To simplify this relationship, DataJoint provides the alias `-> master` in part table definitions, automatically establishing a **foreign key link**.
+### Restrictions on Master-Part Relationships
 
-### Restriction: A Part Table Cannot Be a Master Table
-A **part table cannot serve as a master table** for another part table. The master-part relationship **cannot be nested**.
-Nor can a part table have two masters.
-- **Each part table belongs exclusively to a single master table.**
-- **Part tables cannot contain additional part tables.**
-- **For hierarchical relationships, use additional master tables with separate part tables instead.**
+1.  **No Nested Masters**: A part table SHALL NOT itself serve as a master table for other part tables. The master-part relationship is limited to one level of nesting.
+2.  **Exclusive Master**: A part table SHALL belong to exactly one master table. It cannot have multiple master tables.
+3.  **Hierarchical Data**: For more complex hierarchical relationships extending beyond a single master-part level, multiple distinct master tables, each potentially with their own part tables, SHOULD be used, linked by standard foreign key relationships.
 
-
-**Example: Cell Segmentation with a Master-Part Relationship**
-
-The following example demonstrates a **segmentation pipeline**, where `Segmentation` serves as the **master table**, and `Segmentation.Region` captures **all segmented regions** for each image.
-
+**Example: Cell Segmentation with Master-Part**
 ```python
 @schema
-class Segmentation(dj.Computed):
-  definition = """
-  -> acq.Image
-  -> SegmentationMethod
-  ---
-  segmented_image : <nparray>
-  number_regions  : uint16
-  """
+class Segmentation(dj.Computed):  # Master table
+    definition = """
+    -> acq.Image
+    -> seg.SegmentationMethod
+    ---
+    segmented_image_object : <image_object_type> # Reference to the full segmented image
+    region_count           : uint16              # Number of segmented regions
+    """
 
-  class Region(dj.Part):
-      definition = """
-      -> master     #  foreign key to Segmentation
-      region_idx : uint16  # differentiates regions within the segmentation
-      ---
-      region_pixels  : <nparray>
-      region_weights : <nparray>
-      """
+    class Region(dj.Part):  # Part table, nested within Segmentation
+        definition = """
+        # Stores individual segmented regions for each Segmentation entry
+        -> master             # Foreign key to the Segmentation master table
+        region_idx : uint16   # Differentiates regions within the same segmentation
+        ---
+        region_pixels_object : <region_mask_object_type> # Object with pixel data for the region
+        region_area          : float                     # Area of the region
+        """
 ```
-
-Key characteristics of this master-part example:
-- [x] Ensures atomic transactions – A segmentation entry and all its regions are inserted and deleted together.
-- [x] Maintains referential integrity – Part records cannot exist without a corresponding master record.
-- [x] Simplifies queries – The `-> master` alias simplifies the definition of the foreign key.
+**Key Characteristics of this Example:**
+-   Atomic operations: An entry in `Segmentation` and all its corresponding `Segmentation.Region` entries are inserted or deleted as a single transaction.
+-   Referential integrity: No `Segmentation.Region` entry can exist without a valid parent `Segmentation` entry.
+-   Simplified definition: The `-> master` alias clearly defines the link to the master table.
 
 ### Enforcement via Transaction Processing
-When using the master-part pattern, DataJoint guarantees:
 
-- Insertion is atomic – The master entry and all its parts are inserted in a single transaction.
-- Deletion is cascaded – Removing a master entry automatically deletes all its parts.
-- No nested parts – A part table cannot serve as a master table for another part.
+The DataJoint framework guarantees the integrity of master-part relationships through its transaction handling:
 
-This mechanism eliminates orphaned records, ensuring data consistency and integrity in relational workflows.
+-   **Atomic Insertion**: When records are inserted into a master table that has associated part tables, the master record and all its corresponding part records (often provided together in a single structured dictionary or object) MUST be inserted within a single database transaction. If any part of the insertion fails, the entire transaction is rolled back.
+-   **Cascaded Deletion**: When a record in a master table is deleted, all corresponding records in its part tables SHALL be automatically deleted by the database system due to the cascading nature of the foreign key constraint.
 
 ---
 # Diagram
