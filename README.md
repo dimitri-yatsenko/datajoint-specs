@@ -34,7 +34,7 @@ Each implementation release may claim which Specs verrsion it supports. For exam
 
 ## Specifications
 - **[Version 2.0](SPECS_2_0.md)** – Accepted 2025-06-01
-- **[Version 2.1](SPECS_1_0.md)** – Draft (Estimated Acceptance: 2025-09-01)
+- **[Version 2.1](SPECS_2_1.md)** – Draft (Estimated Acceptance: 2025-09-01)
 
 ## DataJoint-Specs Enhancement Proposals (DSEPs)  
 * [DSEP Process](DSEP_process.md)
