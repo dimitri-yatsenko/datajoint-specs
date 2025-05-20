@@ -1099,12 +1099,15 @@ Universal sets, denoted by `dj.U(...)`, are symbolic constructs representing the
 * `dj.U('attr1', 'attr2', ...)`: Represents a conceptual table containing all possible combinations of values for the attributes `'attr1'`, `'attr2'`, etc.
 * `dj.U()`: Represents a singular entity, effectively a table with no attributes and one conceptual row. This is primarily used for universal aggregations.
 
-**Applications:**
+### Applications of Universal Sets
 
-1.  **Projecting Unique Values:** When restricted by an existing table, `dj.U('attribute_name')` combined with that table results in the distinct values of `'attribute_name'` present in the table.
+1.  **Projecting Unique Values:** When restricted by an existing table, `dj.U(<attributes>)` combined with that table results in the distinct values of `<attributes>` present in the table.
     ```python
     # Retrieve all unique last names from the Student table.
     unique_last_names = dj.U('last_name') & Student
+    
+    # Retrieve all unique full names from the Student table.
+    unique_full_names = dj.U('first_name', 'last_name') & Student
     ```
 
 2.  **Universal Aggregation:** `dj.U()` (with no arguments) serves as the grouping entity for aggregations that span all rows of a table, rather than grouping by the primary key of another table.
@@ -1113,6 +1116,16 @@ Universal sets, denoted by `dj.U(...)`, are symbolic constructs representing the
     total_student_count = dj.U().aggr(Student, n_students='COUNT(student_id)')
     # The result is a table with one row and one attribute 'n_students'.
     # The primary key of this result is the empty set.
+    ```
+
+3. **Aggregation by arbitary groupings:** `dj.(<attribites>)` creates a new grouping entity with an arbitrary primary key for use in aggregations for which no existing entity type fits that purpose.
+
+    ```python
+    # count how many students per year and month of birth 
+    student_counts = dj.U('year_of_birth', 'month_of_birth').aggr(
+      Student.proj(year_of_birth='YEAR(date_of_birth)', month_of_birth='MONTH(date_of_birth)'), 
+      n_students='COUNT(*)'
+    )
     ```
 
 -----------
