@@ -1312,7 +1312,7 @@ class SignalAverage(dj.Computed):
         # Step 3: Insert the computed result.
         average_signal_value, = computed
         self.insert1({**key, "avg_signal": average_signal_value})
-        yield None  # signals the end of computation
+        yield  # signals the end of computation
 ```
 
 DataJoint's internal logic will automatically call the three methods in the correct order, as illustrated in the pseudocode below:
